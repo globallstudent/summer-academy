@@ -1,55 +1,146 @@
 {{ define "content" }}
-<div class="container my-5">
-    <h1>Welcome to Summer Academy</h1>
-    <p class="lead">Learn Data Structures, Algorithms, and Linux through interactive challenges.</p>
-
-    <div class="row mt-5">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    Today's Challenges
-                </div>
-                <div class="card-body">
-                    {{ if .Error }}
-                    <div class="alert alert-warning">{{ .Error }}</div>
-                    {{ else if .TodayProblems }}
-                    <ul class="list-group list-group-flush">
-                        {{ range .TodayProblems }}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <a href="/problems/{{ .Slug }}">{{ .Title }}</a>
-                            <span class="badge bg-primary rounded-pill">{{ .Score }} points</span>
-                        </li>
-                        {{ end }}
-                    </ul>
+<!-- Hero Section -->
+<div class="bg-primary text-white py-5 mb-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="display-4 fw-bold">Welcome to Summer Academy</h1>
+                <p class="lead fs-4">Master Data Structures, Algorithms, and Linux through our interactive 30-day coding challenge.</p>
+                <div class="mt-4">
+                    {{ if .IsAuthenticated }}
+                        <a href="/contests" class="btn btn-light btn-lg me-3">View Contests</a>
                     {{ else }}
-                    <p>No challenges available for today yet. Check back later!</p>
+                        <a href="/login" class="btn btn-light btn-lg me-3">Login to Start</a>
                     {{ end }}
+                    <a href="#learn-more" class="btn btn-outline-light btn-lg">Learn More</a>
                 </div>
-                <div class="card-footer">
-                    <a href="/days" class="btn btn-outline-primary">View All Days</a>
+            </div>
+            <div class="col-md-4 d-none d-md-block">
+                <img src="/static/img/code-illustration.svg" alt="Coding Illustration" class="img-fluid" onerror="this.style.display='none'">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5" id="learn-more">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">What We Offer</h2>
+        <p class="lead text-muted">Enhance your programming skills through structured learning and practical challenges</p>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3">
+                        <i class="bi bi-code-square"></i>
+                    </div>
+                    <h3>Daily Challenges</h3>
+                    <p>A new programming problem each day for 30 days, gradually increasing in difficulty.</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    Get Started
-                </div>
-                <div class="card-body">
-                    <p>Summer Academy is a platform to practice coding challenges and develop your skills in:</p>
-                    <ul>
-                        <li>Data Structures & Algorithms</li>
-                        <li>Linux Command Line</li>
-                        <li>System Design</li>
-                    </ul>
-                    <p>Login to start solving challenges and track your progress!</p>
-                </div>
-                <div class="card-footer">
-                    <a href="/login" class="btn btn-outline-success">Login</a>
-                    <a href="/leaderboard" class="btn btn-outline-info">View Leaderboard</a>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-success bg-gradient text-white rounded-circle mb-3">
+                        <i class="bi bi-terminal"></i>
+                    </div>
+                    <h3>Built-in Terminal</h3>
+                    <p>Test your code directly in the browser with our integrated development environment.</p>
                 </div>
             </div>
         </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-info bg-gradient text-white rounded-circle mb-3">
+                        <i class="bi bi-trophy"></i>
+                    </div>
+                    <h3>Leaderboard</h3>
+                    <p>Compete with other participants and track your progress on our real-time leaderboard.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Contest Section -->
+<div class="bg-light py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2>30-Day Coding Challenge</h2>
+                <p class="lead">Our flagship contest runs for 30 days with daily problem releases.</p>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> New challenges unlock each day</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Automatic testing and immediate feedback</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Learn algorithms, data structures, and Linux</li>
+                </ul>
+                {{ if .IsAuthenticated }}
+                    <a href="/contests/summer-challenge" class="btn btn-primary mt-3">Enter Challenge</a>
+                {{ else }}
+                    <a href="/login" class="btn btn-primary mt-3">Login to Join</a>
+                {{ end }}
+            </div>
+            <div class="col-md-6">
+                {{ if .TodayProblems }}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Today's Challenges</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {{ range .TodayProblems }}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="/problems/{{ .Slug }}" class="text-decoration-none">{{ .Title }}</a>
+                                <span class="badge bg-primary rounded-pill">{{ .Score }} points</span>
+                            </li>
+                            {{ end }}
+                        </ul>
+                    </div>
+                </div>
+                {{ else }}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">Join the Challenge</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Register today to access our 30-day coding challenge and improve your programming skills.</p>
+                        <p>The next challenge starts soon!</p>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Testimonials or Stats Section -->
+<div class="container my-5">
+    <div class="text-center mb-4">
+        <h2>Join Our Community</h2>
+        <p class="lead text-muted">Connect with other developers and enhance your skills together</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-4 fw-bold text-primary">30+</div>
+            <p>Unique Challenges</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-4 fw-bold text-primary">24/7</div>
+            <p>Learning Platform</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="display-4 fw-bold text-primary">100%</div>
+            <p>Hands-on Practice</p>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="/login" class="btn btn-lg btn-outline-primary">Start Now</a>
     </div>
 </div>
 {{ end }}

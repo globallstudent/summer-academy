@@ -1,21 +1,21 @@
 package main
 
 import (
-"log"
-"os"
+	"log"
+	"os"
 
-"github.com/gin-contrib/cors"
-"github.com/gin-gonic/gin"
-"github.com/joho/godotenv"
-swaggerFiles "github.com/swaggo/files"
-ginSwagger "github.com/swaggo/gin-swagger"
-"github.com/globallstudent/academy/docs"
-"github.com/globallstudent/academy/internal/config"
-"github.com/globallstudent/academy/internal/database"
-"github.com/globallstudent/academy/internal/handlers"
-"github.com/globallstudent/academy/internal/middleware"
-"github.com/globallstudent/academy/internal/telegrambot"
-"github.com/globallstudent/academy/internal/template"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/globallstudent/academy/docs"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/handlers"
+	"github.com/globallstudent/academy/internal/middleware"
+	"github.com/globallstudent/academy/internal/telegrambot"
+	"github.com/globallstudent/academy/internal/template"
+	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // @title           Summer Academy API

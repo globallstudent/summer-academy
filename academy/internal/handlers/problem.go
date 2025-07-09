@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/globallstudent/academy/internal/config"
 	"github.com/globallstudent/academy/internal/database"
 	"github.com/globallstudent/academy/internal/models"
+	"github.com/google/uuid"
 )
 
 // ProblemHandlers contains handlers for problem routes

@@ -185,18 +185,18 @@ func (b *Bot) handleText(c telebot.Context) error {
 		otp := generateOTP()
 		state.OTP = otp
 
-	// Store OTP in Redis with expiration (5 minutes) if Redis is available
-	if b.redis != nil {
-		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
-		if err != nil {
-			// Log the error in production
-			log.Printf("Error storing OTP in Redis: %v", err)
-			return c.Send("An error occurred while storing OTP. Please try again later.")
+		// Store OTP in Redis with expiration (5 minutes) if Redis is available
+		if b.redis != nil {
+			err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
+			if err != nil {
+				// Log the error in production
+				log.Printf("Error storing OTP in Redis: %v", err)
+				return c.Send("An error occurred while storing OTP. Please try again later.")
+			}
+		} else {
+			// In development mode without Redis, just log the OTP
+			log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
 		}
-	} else {
-		// In development mode without Redis, just log the OTP
-		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
-	}
 
 		// Create login URL with parameters
 		loginURL := fmt.Sprintf("%s?phone=%s&otp=%s", b.loginURL, state.PhoneNumber, otp)

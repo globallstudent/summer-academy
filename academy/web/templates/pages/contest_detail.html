@@ -1,0 +1,91 @@
+{{ define "content" }}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>{{ .Contest.Title }}</h1>
+            <p class="lead text-muted">{{ .Contest.Description }}</p>
+        </div>
+        <div>
+            <a href="/contests/{{ .Contest.Slug }}/leaderboard" class="btn btn-outline-primary me-2">
+                <i class="bi bi-trophy"></i> Leaderboard
+            </a>
+            {{ if .IsAdmin }}
+            <a href="/admin/contests/{{ .Contest.Slug }}" class="btn btn-outline-danger">
+                <i class="bi bi-gear"></i> Manage
+            </a>
+            {{ end }}
+        </div>
+    </div>
+
+    <!-- Contest Progress -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="mb-0">Day {{ .CurrentDay }} of {{ .Contest.DurationDays }}</h4>
+                        <p class="text-muted mb-0">Current Progress</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ .ProgressPercent }}%;" 
+                             aria-valuenow="{{ .ProgressPercent }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ .ProgressPercent }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h4 class="mb-0">{{ .UserScore }} / {{ .TotalPossibleScore }}</h4>
+                        <p class="text-muted mb-0">Your Score</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Days Grid -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Challenge Days</h5>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-2 row-cols-md-5 g-3">
+                {{ range $index, $day := .Days }}
+                <div class="col">
+                    <div class="card h-100 {{ if $day.IsLocked }}border-secondary bg-light{{ else if $day.IsCompleted }}border-success{{ else if $day.IsCurrent }}border-primary{{ else }}border-secondary{{ end }}">
+                        <div class="card-body p-3 text-center">
+                            <h5 class="card-title mb-0">Day {{ add $index 1 }}</h5>
+                            {{ if $day.IsLocked }}
+                                <p class="text-muted my-3"><i class="bi bi-lock-fill fs-3"></i></p>
+                                <span class="badge bg-secondary">Locked</span>
+                            {{ else }}
+                                <p class="card-text small my-2">{{ $day.Title }}</p>
+                                {{ if $day.IsCompleted }}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Completed
+                                    </span>
+                                {{ else if $day.IsCurrent }}
+                                    <span class="badge bg-primary">Current</span>
+                                {{ else }}
+                                    <span class="badge bg-warning">Available</span>
+                                {{ end }}
+                            {{ end }}
+                        </div>
+                        <div class="card-footer p-2 text-center bg-transparent">
+                            {{ if $day.IsLocked }}
+                                <button class="btn btn-sm btn-secondary w-100" disabled>Unlocks Soon</button>
+                            {{ else }}
+                                <a href="/days/{{ add $index 1 }}" class="btn btn-sm btn-primary w-100">View Tasks</a>
+                            {{ end }}
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

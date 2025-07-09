@@ -35,19 +35,26 @@ func NewPublicHandlers(db *database.DB, redis *database.Redis, cfg *config.Confi
 // @Failure      500  {object}  nil  "Internal server error"
 // @Router       / [get]
 func (h *PublicHandlers) HomePage(c *gin.Context) {
+	// Check if user is authenticated
+	user, isAuthenticated := c.Get("user")
+
 	// Get today's problem if available
 	todayProblems, err := getTodaysProblems(h.db)
 	if err != nil {
 		c.HTML(http.StatusOK, "main", gin.H{
-			"Title": "Summer Academy - Learn DSA and Linux",
-			"Error": "Failed to get today's problems",
+			"Title":           "Summer Academy - Learn DSA and Linux",
+			"Error":           "Failed to get today's problems",
+			"IsAuthenticated": isAuthenticated,
+			"User":            user,
 		})
 		return
 	}
 
 	c.HTML(http.StatusOK, "main", gin.H{
-		"Title":         "Summer Academy - Learn DSA and Linux",
-		"TodayProblems": todayProblems,
+		"Title":           "Summer Academy - Learn DSA and Linux",
+		"TodayProblems":   todayProblems,
+		"IsAuthenticated": isAuthenticated,
+		"User":            user,
 	})
 }
 
@@ -188,19 +195,26 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 // @Failure      500  {object}  nil  "Internal server error"
 // @Router       /leaderboard [get]
 func (h *PublicHandlers) LeaderboardPage(c *gin.Context) {
+	// Check if user is authenticated
+	user, isAuthenticated := c.Get("user")
+
 	// Get leaderboard entries
 	entries, err := getLeaderboard(h.db)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Leaderboard - Summer Academy",
-			"Error": "Failed to get leaderboard data",
+			"Title":           "Leaderboard - Summer Academy",
+			"Error":           "Failed to get leaderboard data",
+			"IsAuthenticated": isAuthenticated,
+			"User":            user,
 		})
 		return
 	}
 
 	c.HTML(http.StatusOK, "main", gin.H{
-		"Title": "Leaderboard - Summer Academy",
-		"Users": entries,  // Changed from Entries to Users to match the leaderboard.html template
+		"Title":           "Leaderboard - Summer Academy",
+		"Users":           entries, // Changed from Entries to Users to match the leaderboard.html template
+		"IsAuthenticated": isAuthenticated,
+		"User":            user,
 	})
 }
 

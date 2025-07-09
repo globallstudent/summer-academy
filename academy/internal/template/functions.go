@@ -1,11 +1,11 @@
 package template
 
 import (
-"html/template"
-"time"
+	"html/template"
+	"time"
 
-"github.com/microcosm-cc/bluemonday"
-"github.com/russross/blackfriday/v2"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/russross/blackfriday/v2"
 )
 
 // Functions returns a map of template functions
@@ -21,10 +21,10 @@ func Functions() template.FuncMap {
 func MarkdownToHTML(md string) template.HTML {
 	// Convert markdown to HTML
 	unsafe := blackfriday.Run([]byte(md))
-	
+
 	// Sanitize HTML to prevent XSS
 	html := bluemonday.UGCPolicy().SanitizeBytes(unsafe)
-	
+
 	return template.HTML(html)
 }
 

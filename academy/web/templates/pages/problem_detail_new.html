@@ -1,0 +1,235 @@
+{{ define "content" }}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Problem Description Panel -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ .Problem.Title }}</h5>
+                    <span class="badge bg-light text-primary">{{ .Problem.Score }} points</span>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <div>
+                            <span class="badge bg-secondary me-2">Day {{ .Problem.Day }}</span>
+                            <span class="badge bg-info">{{ .Problem.Type }}</span>
+                        </div>
+                        <div>
+                            <a href="/days/{{ .Problem.Day }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Day {{ .Problem.Day }}
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Problem Description -->
+                    <div class="markdown-content">
+                        {{ if .Content }}
+                            {{ .Content | markdownToHTML }}
+                        {{ else }}
+                            <div class="alert alert-warning">Problem description not available.</div>
+                        {{ end }}
+                    </div>
+                    
+                    <!-- Example Test Cases -->
+                    <div class="mt-4">
+                        <h5>Example Test Cases</h5>
+                        {{ if .Testcases }}
+                            {{ range .Testcases }}
+                                {{ if not .IsHidden }}
+                                <div class="card mb-3 border-secondary">
+                                    <div class="card-header bg-light py-2">
+                                        <strong>Input:</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <pre class="mb-0"><code>{{ .Input }}</code></pre>
+                                    </div>
+                                    <div class="card-header bg-light py-2">
+                                        <strong>Expected Output:</strong>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <pre class="mb-0"><code>{{ .ExpectedOutput }}</code></pre>
+                                    </div>
+                                </div>
+                                {{ end }}
+                            {{ end }}
+                        {{ else }}
+                            <div class="alert alert-info">No example test cases available.</div>
+                        {{ end }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Terminal and Test Panel -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <ul class="nav nav-tabs card-header-tabs" id="solution-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active text-white" id="code-tab" data-bs-toggle="tab" data-bs-target="#code" type="button" role="tab" aria-controls="code" aria-selected="true">
+                                <i class="bi bi-code-square"></i> Code
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-white" id="terminal-tab" data-bs-toggle="tab" data-bs-target="#terminal" type="button" role="tab" aria-controls="terminal" aria-selected="false">
+                                <i class="bi bi-terminal"></i> Terminal
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link text-white" id="test-tab" data-bs-toggle="tab" data-bs-target="#test" type="button" role="tab" aria-controls="test" aria-selected="false">
+                                <i class="bi bi-check2-circle"></i> Test Results
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-0">
+                    <div class="tab-content" id="solution-tabs-content">
+                        <!-- Code Editor Tab -->
+                        <div class="tab-pane fade show active" id="code" role="tabpanel" aria-labelledby="code-tab">
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <select class="form-select w-auto" id="language-select">
+                                        <option value="python">Python</option>
+                                        <option value="go">Go</option>
+                                        <option value="javascript">JavaScript</option>
+                                    </select>
+                                    <div>
+                                        <button class="btn btn-outline-secondary me-2" id="reset-code">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                        </button>
+                                        <button class="btn btn-primary" id="run-code">
+                                            <i class="bi bi-play-fill"></i> Run
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="editor" class="border" style="height: 400px;">{{ .StarterCode }}</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Terminal Tab -->
+                        <div class="tab-pane fade" id="terminal" role="tabpanel" aria-labelledby="terminal-tab">
+                            <div class="terminal-container bg-dark text-light p-3" style="height: 465px; overflow-y: auto;">
+                                <div id="terminal-output">
+                                    <div class="terminal-line">$ <span class="terminal-prompt">Ready...</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Test Results Tab -->
+                        <div class="tab-pane fade" id="test" role="tabpanel" aria-labelledby="test-tab">
+                            <div class="p-3">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <h6>Test Results</h6>
+                                    <button class="btn btn-primary" id="run-tests">
+                                        <i class="bi bi-play-circle"></i> Run Tests
+                                    </button>
+                                </div>
+                                
+                                <div id="test-results">
+                                    <div class="text-center text-muted py-5">
+                                        <i class="bi bi-question-circle display-4"></i>
+                                        <p class="mt-3">Run tests to see results</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <span id="save-status" class="text-muted">
+                                <i class="bi bi-check-circle"></i> All changes saved
+                            </span>
+                        </div>
+                        <div>
+                            <button id="submit-solution" class="btn btn-success">
+                                <i class="bi bi-send"></i> Submit Solution
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional script tags for editor and terminal functionality -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Ace editor
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/python");
+        editor.setShowPrintMargin(false);
+        
+        // Handle language change
+        const languageSelect = document.getElementById('language-select');
+        languageSelect.addEventListener('change', function() {
+            const language = this.value;
+            const modeMap = {
+                'python': 'python',
+                'go': 'golang',
+                'javascript': 'javascript'
+            };
+            editor.session.setMode("ace/mode/" + modeMap[language]);
+        });
+        
+        // Handle run code button
+        const runCodeButton = document.getElementById('run-code');
+        runCodeButton.addEventListener('click', function() {
+            // Show terminal tab
+            const terminalTab = document.getElementById('terminal-tab');
+            terminalTab.click();
+            
+            const terminalOutput = document.getElementById('terminal-output');
+            terminalOutput.innerHTML += '<div class="terminal-line">$ <span class="terminal-prompt">Running code...</span></div>';
+            
+            // Here you would normally send the code to the server and display the result
+            // For demo purposes, we'll just add some output
+            setTimeout(() => {
+                terminalOutput.innerHTML += '<div class="terminal-line terminal-output">Hello, World!</div>';
+                terminalOutput.innerHTML += '<div class="terminal-line terminal-output">Process completed with exit code 0</div>';
+                terminalOutput.innerHTML += '<div class="terminal-line">$ <span class="terminal-prompt">Ready...</span></div>';
+            }, 1000);
+        });
+    });
+</script>
+
+<style>
+    .terminal-container {
+        font-family: 'Courier New', monospace;
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    
+    .terminal-line {
+        line-height: 1.5;
+    }
+    
+    .terminal-prompt {
+        color: #a6e22e;
+    }
+    
+    .terminal-output {
+        color: #e6db74;
+    }
+    
+    .markdown-content pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+    }
+    
+    .feature-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 4rem;
+        height: 4rem;
+        font-size: 2rem;
+    }
+</style>
+{{ end }}

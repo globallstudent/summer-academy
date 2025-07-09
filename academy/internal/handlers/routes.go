@@ -15,6 +15,7 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	submissionHandlers := NewSubmissionHandlers(db, cfg)
 	userHandlers := NewUserHandlers(db, cfg)
 	wbfyHandlers := NewWBFYHandlers(db, cfg)
+	contestHandlers := NewContestHandlers(db, redis, cfg)
 
 	// Public routes (no auth required)
 	router.GET("/", publicHandlers.HomePage)
@@ -27,6 +28,12 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	authenticated := router.Group("/")
 	authenticated.Use(middleware.Auth())
 	{
+		// Contest routes
+		authenticated.GET("/contests", contestHandlers.ListContests)
+		authenticated.GET("/contests/:slug", contestHandlers.ContestDetail)
+		authenticated.GET("/contests/:slug/join", contestHandlers.JoinContest)
+		authenticated.GET("/contests/:slug/leaderboard", contestHandlers.ContestLeaderboard)
+
 		// Days and problems
 		authenticated.GET("/days", problemHandlers.ListDays)
 		authenticated.GET("/days/:day", problemHandlers.DayDetail)
