@@ -10,7 +10,7 @@
                     {{ if .IsAuthenticated }}
                         <a href="/contests" class="btn btn-light btn-lg me-3">View Contests</a>
                     {{ else }}
-                        <a href="/login" class="btn btn-light btn-lg me-3">Login to Start</a>
+                        <a href="/auth/login" class="btn btn-light btn-lg me-3">Login to Start</a>
                     {{ end }}
                     <a href="#learn-more" class="btn btn-outline-light btn-lg">Learn More</a>
                 </div>
@@ -81,7 +81,7 @@
                 {{ if .IsAuthenticated }}
                     <a href="/contests/summer-challenge" class="btn btn-primary mt-3">Enter Challenge</a>
                 {{ else }}
-                    <a href="/login" class="btn btn-primary mt-3">Login to Join</a>
+                    <a href="/auth/login" class="btn btn-primary mt-3">Login to Join</a>
                 {{ end }}
             </div>
             <div class="col-md-6">
@@ -140,7 +140,7 @@
     </div>
     
     <div class="text-center mt-4">
-        <a href="/login" class="btn btn-lg btn-outline-primary">Start Now</a>
+        <a href="/auth/login" class="btn btn-lg btn-outline-primary">Start Now</a>
     </div>
 </div>
 {{ end }}
