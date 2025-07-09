@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,6 +14,83 @@ import (
 	"github.com/globallstudent/academy/internal/models"
 	"github.com/google/uuid"
 )
+
+// Development mode only: in-memory OTP store with mutex for thread safety
+var (
+	devOTPStore     = make(map[string]string)
+	devOTPStoreLock sync.RWMutex
+)
+
+// OTP verification rate limiting
+var (
+	failedAttempts     = make(map[string]int)
+	failedAttemptTimes = make(map[string]time.Time)
+	maxFailedAttempts  = 5
+	lockoutDuration    = 10 * time.Minute
+	failedAttemptsLock sync.RWMutex
+)
+
+// StoreDevelopmentOTP stores an OTP for development mode only
+func StoreDevelopmentOTP(phoneNumber, otp string) {
+	devOTPStoreLock.Lock()
+	defer devOTPStoreLock.Unlock()
+	devOTPStore[phoneNumber] = otp
+
+	// For security, automatically expire OTPs after 5 minutes
+	go func(phone string) {
+		time.Sleep(5 * time.Minute)
+		devOTPStoreLock.Lock()
+		defer devOTPStoreLock.Unlock()
+		delete(devOTPStore, phone)
+	}(phoneNumber)
+}
+
+// checkRateLimit checks if a phone number has exceeded the maximum allowed failed attempts
+// Returns true if rate limited, false otherwise
+func checkRateLimit(phoneNumber string) bool {
+	failedAttemptsLock.RLock()
+	attempts, exists := failedAttempts[phoneNumber]
+	lastAttemptTime, timeExists := failedAttemptTimes[phoneNumber]
+	failedAttemptsLock.RUnlock()
+
+	if !exists {
+		return false
+	}
+
+	// Reset attempts if lockout period has passed
+	if timeExists && time.Since(lastAttemptTime) > lockoutDuration {
+		failedAttemptsLock.Lock()
+		delete(failedAttempts, phoneNumber)
+		delete(failedAttemptTimes, phoneNumber)
+		failedAttemptsLock.Unlock()
+		return false
+	}
+
+	// Check if max attempts reached
+	return attempts >= maxFailedAttempts
+}
+
+// incrementFailedAttempts increases the count of failed attempts for a phone number
+func incrementFailedAttempts(phoneNumber string) {
+	failedAttemptsLock.Lock()
+	defer failedAttemptsLock.Unlock()
+
+	count, exists := failedAttempts[phoneNumber]
+	if !exists {
+		failedAttempts[phoneNumber] = 1
+	} else {
+		failedAttempts[phoneNumber] = count + 1
+	}
+	failedAttemptTimes[phoneNumber] = time.Now()
+}
+
+// resetFailedAttempts resets the failed attempts counter for a phone number
+func resetFailedAttempts(phoneNumber string) {
+	failedAttemptsLock.Lock()
+	defer failedAttemptsLock.Unlock()
+	delete(failedAttempts, phoneNumber)
+	delete(failedAttemptTimes, phoneNumber)
+}
 
 // PublicHandlers contains handlers for public routes
 type PublicHandlers struct {
@@ -68,8 +146,14 @@ func (h *PublicHandlers) HomePage(c *gin.Context) {
 // @Success      200  {object}  nil  "Login page"
 // @Router       /login [get]
 func (h *PublicHandlers) LoginPage(c *gin.Context) {
+	// Get phone and OTP from query params if provided
+	phoneNumber := c.Query("phone")
+	otp := c.Query("otp")
+
 	c.HTML(http.StatusOK, "main", gin.H{
 		"Title": "Login - Summer Academy",
+		"Phone": phoneNumber,
+		"OTP":   otp,
 	})
 }
 
@@ -113,40 +197,133 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	phoneNumber := c.PostForm("phone")
 	otp := c.PostForm("otp")
 
+	// Log the request details for debugging
+	log.Printf("ProcessLogin: received request path=%s method=%s phone=%s otp=%s",
+		c.Request.URL.Path, c.Request.Method, phoneNumber, otp)
+
+	// Dump all form data for debugging
+	for key, values := range c.Request.PostForm {
+		log.Printf("Form field %s = %v", key, values)
+	}
+
+	// Dump all headers for debugging
+	for key, values := range c.Request.Header {
+		log.Printf("Header %s = %v", key, values)
+	}
+
+	// Check if this is an HTMX request
+	isHtmx := c.GetHeader("HX-Request") == "true"
+
+	// Function to return error response in appropriate format
+	renderError := func(status int, title, errorMsg string) {
+		if isHtmx {
+			// For HTMX requests, return a partial page with the form and error
+			c.Header("HX-Retarget", "#verify-section")
+			c.HTML(status, "main", gin.H{
+				"Title":   title,
+				"Error":   errorMsg,
+				"Content": "verify",
+				"Phone":   phoneNumber,
+			})
+		} else {
+			// For regular form submissions, render the full page
+			c.HTML(status, "main", gin.H{
+				"Title":   title,
+				"Error":   errorMsg,
+				"Content": "verify",
+				"Phone":   phoneNumber,
+			})
+		}
+	}
+
 	// Validate input
 	if otp == "" || len(otp) != 6 {
-		c.HTML(http.StatusBadRequest, "main", gin.H{
-			"Title": "Verify OTP - Summer Academy",
-			"Error": "Invalid verification code",
-			"OTP":   otp,
-		})
+		renderError(http.StatusBadRequest, "Verify OTP - Summer Academy",
+			"Invalid verification code. Code must be 6 digits.")
+		return
+	}
+
+	if phoneNumber == "" {
+		renderError(http.StatusBadRequest, "Verify OTP - Summer Academy",
+			"Phone number is required. Please use the Telegram bot to get a verification code.")
+		return
+	}
+
+	// Check rate limit for OTP verification attempts
+	if checkRateLimit(phoneNumber) {
+		renderError(http.StatusTooManyRequests, "Verify OTP - Summer Academy",
+			"Too many failed verification attempts. Please try again in 10 minutes.")
 		return
 	}
 
 	var isValid bool
+	var verifyErr error
+
 	// Verify OTP against Redis if available
 	if h.redis != nil && h.redis.Client != nil {
-		isValid, _ = h.redis.VerifyOTP(phoneNumber, otp)
-	} else if h.cfg.Environment != "production" {
-		// For development when Redis isn't available, accept any code
-		isValid = true
-		log.Printf("Development mode: accepting any OTP code: %s", otp)
+		isValid, verifyErr = h.redis.VerifyOTP(phoneNumber, otp)
+		if verifyErr != nil {
+			log.Printf("Error verifying OTP: %v", verifyErr)
+
+			// Try development store as fallback if Redis fails and we're in development
+			if h.cfg != nil && h.cfg.Environment == "development" {
+				devOTPStoreLock.RLock()
+				actualOTP, exists := devOTPStore[phoneNumber]
+				devOTPStoreLock.RUnlock()
+
+				if exists && actualOTP == otp {
+					isValid = true
+					devOTPStoreLock.Lock()
+					delete(devOTPStore, phoneNumber)
+					devOTPStoreLock.Unlock()
+					log.Printf("Redis failed but development OTP store verification succeeded for %s", phoneNumber)
+				} else {
+					renderError(http.StatusInternalServerError, "Verify OTP - Summer Academy",
+						"Verification service error. Please try again or request a new code.")
+					return
+				}
+			} else {
+				renderError(http.StatusInternalServerError, "Verify OTP - Summer Academy",
+					"Verification service error. Please try again or request a new code.")
+				return
+			}
+		}
+	} else if h.cfg != nil && h.cfg.Environment == "development" {
+		// ONLY for development when Redis isn't available
+
+		// Get the stored dev OTPs from temporary in-memory store
+		devOTPStoreLock.RLock()
+		actualOTP, exists := devOTPStore[phoneNumber]
+		devOTPStoreLock.RUnlock()
+
+		if exists && actualOTP == otp {
+			isValid = true
+			log.Printf("Development mode: OTP verified for %s", phoneNumber)
+			// Remove the OTP from store to prevent reuse
+			devOTPStoreLock.Lock()
+			delete(devOTPStore, phoneNumber)
+			devOTPStoreLock.Unlock()
+		} else {
+			isValid = false
+			log.Printf("Development mode: Invalid OTP attempt: %s", otp)
+		}
 	} else {
-		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Verify OTP - Summer Academy",
-			"Error": "OTP service unavailable",
-		})
+		renderError(http.StatusServiceUnavailable, "Verify OTP - Summer Academy",
+			"Verification service unavailable. Please try again later or contact support.")
 		return
 	}
 
 	if !isValid {
-		c.HTML(http.StatusBadRequest, "main", gin.H{
-			"Title": "Verify OTP - Summer Academy",
-			"Error": "Invalid or expired verification code",
-			"OTP":   otp,
-		})
+		// Increment failed attempts counter
+		incrementFailedAttempts(phoneNumber)
+
+		renderError(http.StatusBadRequest, "Verify OTP - Summer Academy",
+			"Invalid or expired verification code. Please request a new code.")
 		return
 	}
+
+	// Reset failed attempts counter on successful verification
+	resetFailedAttempts(phoneNumber)
 
 	// Find user by phone number or create a new user
 	var user models.User
@@ -175,16 +352,13 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	// Generate JWT token
 	token, err := auth.GenerateToken(user.ID, user.Username, user.Role)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Verify OTP - Summer Academy",
-			"Error": "Failed to generate session token",
-			"OTP":   otp,
-		})
+		renderError(http.StatusInternalServerError, "Verify OTP - Summer Academy",
+			"Failed to generate session token. Please try again.")
 		return
 	}
 
-	// Set cookie
-	secure := c.Request.TLS != nil
+	// Set secure cookie
+	secure := c.Request.TLS != nil || h.cfg.Environment == "production"
 	c.SetCookie(
 		h.cfg.Auth.CookieName,
 		token,
@@ -199,8 +373,19 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	c.Set("user", user)
 	c.Set("IsAuthenticated", true)
 
-	// Redirect to days page
-	c.Redirect(http.StatusFound, "/days")
+	// For HTMX requests, set headers for proper client-side handling
+	if isHtmx {
+		// Tell HTMX to redirect to the days page
+		c.Header("HX-Redirect", "/days")
+		// Return a success message that will be shown briefly before redirect
+		c.HTML(http.StatusOK, "main", gin.H{
+			"Title":   "Login Successful - Summer Academy",
+			"Content": "login-success",
+		})
+	} else {
+		// For regular form submissions, redirect to days page
+		c.Redirect(http.StatusFound, "/days")
+	}
 }
 
 // LeaderboardPage godoc

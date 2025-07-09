@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/globallstudent/academy/internal/config"
 	"github.com/globallstudent/academy/internal/database"
@@ -9,6 +11,12 @@ import (
 
 // RegisterRoutes sets up all the routes for the application
 func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, cfg *config.Config) {
+	// Add a route logger middleware for debugging
+	router.Use(func(c *gin.Context) {
+		log.Printf("[Route] %s %s", c.Request.Method, c.Request.URL.Path)
+		c.Next()
+	})
+
 	// Create handler groups
 	publicHandlers := NewPublicHandlers(db, redis, cfg)
 	problemHandlers := NewProblemHandlers(db, cfg)
@@ -18,14 +26,18 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	wbfyHandlers.StartCleanupJob()
 	contestHandlers := NewContestHandlers(db, redis, cfg)
 
-	// Public routes
+	// Public routes (no auth required)
 	router.GET("/", publicHandlers.HomePage)
-	auth := router.Group("/auth")
-	{
-		auth.GET("/login", publicHandlers.LoginPage)
-		auth.POST("/login", publicHandlers.ProcessLogin)
-		auth.GET("/verify", publicHandlers.VerifyOTPPage)
-		auth.GET("/logout", publicHandlers.LogoutHandler)
+	router.GET("/login", publicHandlers.LoginPage)
+	router.GET("/verify", publicHandlers.VerifyOTPPage)
+	router.POST("/verify", publicHandlers.ProcessLogin)
+	router.POST("/login", publicHandlers.ProcessLogin)
+	router.POST("/auth/login", publicHandlers.ProcessLogin) // For backward compatibility
+	router.GET("/logout", publicHandlers.LogoutHandler)
+
+	// Debug route to help troubleshoot request issues
+	if cfg.Environment != "production" {
+		router.Any("/debug/request", DumpRequest)
 	}
 
 	// Auth required routes
@@ -33,44 +45,29 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	authenticated.Use(middleware.Auth())
 	{
 		authenticated.GET("/leaderboard", publicHandlers.LeaderboardPage)
+		// Contest routes
+		authenticated.GET("/contests", contestHandlers.ListContests)
+		authenticated.GET("/contests/:slug", contestHandlers.ContestDetail)
+		authenticated.GET("/contests/:slug/join", contestHandlers.JoinContest)
+		authenticated.GET("/contests/:slug/leaderboard", contestHandlers.ContestLeaderboard)
 
-		contests := authenticated.Group("/contests")
-		{
-			contests.GET("", contestHandlers.ListContests)
-			contests.GET(":slug", contestHandlers.ContestDetail)
-			contests.GET(":slug/join", contestHandlers.JoinContest)
-			contests.GET(":slug/leaderboard", contestHandlers.ContestLeaderboard)
-		}
+		// Days and problems
+		authenticated.GET("/days", problemHandlers.ListDays)
+		authenticated.GET("/days/:day", problemHandlers.DayDetail)
+		authenticated.GET("/problems/:slug", problemHandlers.ProblemDetail)
 
-		days := authenticated.Group("/days")
-		{
-			days.GET("", problemHandlers.ListDays)
-			days.GET(":day", problemHandlers.DayDetail)
-		}
+		// Submissions
+		authenticated.GET("/submit/:slug", submissionHandlers.SubmitPage)
+		authenticated.POST("/submit/:slug", submissionHandlers.ProcessSubmission)
+		authenticated.POST("/test/:slug", submissionHandlers.TestSubmission)
 
-		problems := authenticated.Group("/problems")
-		{
-			problems.GET(":slug", problemHandlers.ProblemDetail)
-		}
+		// User profile
+		authenticated.GET("/profile", userHandlers.ProfilePage)
+		authenticated.POST("/profile", userHandlers.UpdateProfile)
 
-		submissions := authenticated.Group("/submissions")
-		{
-			submissions.GET(":slug", submissionHandlers.SubmitPage)
-			submissions.POST(":slug", submissionHandlers.ProcessSubmission)
-			submissions.POST("test/:slug", submissionHandlers.TestSubmission)
-		}
-
-		users := authenticated.Group("/users")
-		{
-			users.GET("me", userHandlers.ProfilePage)
-			users.POST("me", userHandlers.UpdateProfile)
-		}
-
-		terminal := authenticated.Group("/terminal")
-		{
-			terminal.POST(":slug", wbfyHandlers.CreateTerminal)
-			terminal.GET(":id", wbfyHandlers.TerminalPage)
-		}
+		// WBFY Terminal integration
+		authenticated.POST("/terminal/:slug", wbfyHandlers.CreateTerminal)
+		authenticated.GET("/terminal/:id", wbfyHandlers.TerminalPage)
 	}
 
 	// Admin routes

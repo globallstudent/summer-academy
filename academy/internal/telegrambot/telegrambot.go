@@ -13,12 +13,13 @@ import (
 
 // Bot represents the Telegram bot service
 type Bot struct {
-	bot       *telebot.Bot
-	redis     *database.Redis
-	db        *database.DB
-	cfg       *config.Config
-	serverURL string
-	loginURL  string
+	bot         *telebot.Bot
+	redis       *database.Redis
+	db          *database.DB
+	cfg         *config.Config
+	serverURL   string
+	loginURL    string
+	devOTPStore interface{} // Function to store development OTPs
 }
 
 // PhoneState stores user's phone number during authentication flow
@@ -49,13 +50,15 @@ func New(cfg *config.Config, redis *database.Redis, db *database.DB, serverURL s
 		return nil, fmt.Errorf("failed to create Telegram bot: %w", err)
 	}
 
+	// Create the bot instance
 	bot := &Bot{
-		bot:       b,
-		redis:     redis,
-		db:        db,
-		cfg:       cfg,
-		serverURL: serverURL,
-		loginURL:  fmt.Sprintf("%s/verify", serverURL),
+		bot:         b,
+		redis:       redis,
+		db:          db,
+		cfg:         cfg,
+		serverURL:   serverURL,
+		loginURL:    fmt.Sprintf("%s/verify", serverURL),
+		devOTPStore: nil, // Will be set by the caller if needed
 	}
 
 	// Set up the bot handlers
@@ -131,7 +134,7 @@ func (b *Bot) handleLogin(c telebot.Context) error {
 	state.OTP = otp
 
 	// Store OTP in Redis with expiration (5 minutes) if Redis is available
-	if b.redis != nil {
+	if b.redis != nil && b.redis.Client != nil {
 		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
 		if err != nil {
 			// Log the error in production
@@ -139,18 +142,15 @@ func (b *Bot) handleLogin(c telebot.Context) error {
 			return c.Send("An error occurred while storing OTP. Please try again later.")
 		}
 	} else {
-		// In development mode without Redis, just log the OTP
+		// In development mode without Redis
+		if storeFunc, ok := b.devOTPStore.(func(string, string)); ok {
+			storeFunc(state.PhoneNumber, otp)
+		}
 		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
 	}
 
-	// Send OTP directly
-	return c.Send(
-		fmt.Sprintf("Your login code is: *%s*\n\n", otp)+
-			"Enter this code on the login page to access Summer Academy.",
-		&telebot.SendOptions{
-			ParseMode: telebot.ModeMarkdown,
-		},
-	)
+	// Send verification message with OTP and quick login links
+	return b.sendVerificationMessage(c, state.PhoneNumber, otp)
 }
 
 // handleContact handles phone number sharing
@@ -197,7 +197,7 @@ func (b *Bot) handleContact(c telebot.Context) error {
 	state.FullName = username
 
 	// Store OTP in Redis with expiration (5 minutes) if Redis is available
-	if b.redis != nil {
+	if b.redis != nil && b.redis.Client != nil {
 		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
 		if err != nil {
 			// Log the error in production
@@ -205,18 +205,15 @@ func (b *Bot) handleContact(c telebot.Context) error {
 			return c.Send("An error occurred while storing OTP. Please try again later.")
 		}
 	} else {
-		// In development mode without Redis, just log the OTP
+		// In development mode without Redis
+		if storeFunc, ok := b.devOTPStore.(func(string, string)); ok {
+			storeFunc(state.PhoneNumber, otp)
+		}
 		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
 	}
 
-	// Send OTP directly
-	return c.Send(
-		fmt.Sprintf("Your login code is: *%s*\n\n", otp)+
-			"Enter this code on the login page to access Summer Academy.",
-		&telebot.SendOptions{
-			ParseMode: telebot.ModeMarkdown,
-		},
-	)
+	// Send verification message with OTP and quick login links
+	return b.sendVerificationMessage(c, state.PhoneNumber, otp)
 }
 
 // handleText handles text messages
@@ -238,6 +235,11 @@ func (b *Bot) handleText(c telebot.Context) error {
 
 	// If user already has an active session, provide help
 	return c.Send("Need a new login code? Use /login to get one.\n\nIf you're having issues, try /start to restart the bot.")
+}
+
+// SetDevOTPStore sets the function to use for development mode OTP storage
+func (b *Bot) SetDevOTPStore(storeFunc interface{}) {
+	b.devOTPStore = storeFunc
 }
 
 // generateOTP generates a 6-digit random OTP

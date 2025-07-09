@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -66,13 +67,41 @@ func main() {
 
 	// Setup Redis connection (with fallback for development)
 	var redis *database.Redis
-	redis, err = database.ConnectRedis(cfg.Redis)
-	if err != nil {
+
+	// Try connecting to Redis with a timeout
+	connectCh := make(chan *database.Redis)
+	errCh := make(chan error)
+
+	go func() {
+		redisConn, connectErr := database.ConnectRedis(cfg.Redis)
+		if connectErr != nil {
+			errCh <- connectErr
+			return
+		}
+		connectCh <- redisConn
+	}()
+
+	// Use a timeout to prevent hanging if Redis is down
+	select {
+	case redis = <-connectCh:
+		log.Println("Successfully connected to Redis")
+		defer redis.Close()
+	case err = <-errCh:
 		log.Printf("Warning: Failed to connect to Redis: %v", err)
+		if cfg.Environment == "production" {
+			log.Println("Redis connection required in production. Exiting.")
+			os.Exit(1)
+		}
 		log.Println("Continuing without Redis for development purposes.")
 		redis = nil
-	} else {
-		defer redis.Close()
+	case <-time.After(5 * time.Second):
+		log.Printf("Warning: Redis connection timed out")
+		if cfg.Environment == "production" {
+			log.Println("Redis connection required in production. Exiting.")
+			os.Exit(1)
+		}
+		log.Println("Continuing without Redis for development purposes.")
+		redis = nil
 	}
 
 	// Set Gin mode based on environment
@@ -126,6 +155,12 @@ func main() {
 		if err != nil {
 			log.Printf("Warning: Failed to initialize Telegram bot: %v", err)
 		} else {
+			// Connect development OTP store if Redis is not available
+			if redis == nil && cfg.Environment != "production" {
+				handlers.ExportedStoreDevelopmentOTP = handlers.StoreDevelopmentOTP
+				bot.SetDevOTPStore(handlers.ExportedStoreDevelopmentOTP)
+			}
+
 			// Start the bot in a goroutine
 			go bot.Start()
 			log.Println("Telegram bot started successfully")

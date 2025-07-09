@@ -2,7 +2,7 @@
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card">
+                <div id="login-section" class="card">
                     <div class="card-header bg-primary text-white">
                         <h3 class="card-title mb-0">Login to Summer Academy</h3>
                     </div>
@@ -37,21 +37,41 @@
                                 <li>Send /login command to the bot</li>
                                 <li>The bot will send you a login code</li>
                                 <li>Enter the code below to login</li>
+                                <li>Make sure to also enter the phone number you shared with the bot</li>
                             </ol>
                         </div>
                         
-                        <form action="/auth/login" method="post" class="mt-4">
+                        <form id="login-form" action="/login" method="post" class="mt-4"
+                              hx-target="#login-section"
+                              hx-swap="outerHTML"
+                              hx-indicator="#login-indicator">
                             <div class="mb-3">
                                 <label for="otp" class="form-label">Login Code</label>
                                 <input type="text" class="form-control" id="otp" name="otp" 
                                     placeholder="Enter the 6-digit code" required 
-                                    pattern="[0-9]{6}" maxlength="6">
+                                    pattern="[0-9]{6}" maxlength="6"
+                                    autocomplete="one-time-code"
+                                    inputmode="numeric"
+                                    value="{{ .OTP }}">
                                 <div class="form-text">
                                     Enter the code sent to you by the Telegram bot.
                                 </div>
                             </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                    placeholder="Enter your phone number" required
+                                    value="{{ .Phone }}"
+                                    autocomplete="tel">
+                                <div class="form-text">
+                                    Enter the phone number you shared with the Telegram bot.
+                                </div>
+                            </div>
+                            
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">
+                                    <span id="login-indicator" class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
                                     Login
                                 </button>
                             </div>
@@ -61,4 +81,25 @@
             </div>
         </div>
     </div>
+    <script>
+    // Automatically fill in phone and OTP from URL parameters
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const phone = urlParams.get('phone');
+        const otp = urlParams.get('otp');
+        
+        if (phone) {
+            document.getElementById('phone').value = phone;
+        }
+        if (otp) {
+            document.getElementById('otp').value = otp;
+            // If we have both phone and OTP, submit automatically
+            if (phone) {
+                setTimeout(function() {
+                    document.getElementById('login-form').submit();
+                }, 500);
+            }
+        }
+    });
+    </script>
 {{ end }}

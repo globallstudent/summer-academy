@@ -2,7 +2,7 @@
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card">
+                <div id="verify-section" class="card">
                     <div class="card-header bg-primary text-white">
                         <h3 class="card-title mb-0">Verify Login</h3>
                     </div>
@@ -19,20 +19,37 @@
                         </div>
                         {{ end }}
 
-                        <form action="/auth/login" method="post">
+                        <form id="verify-form" action="/login" method="post"
+                              hx-target="#verify-section"
+                              hx-swap="outerHTML"
+                              hx-push-url="false"
+                              hx-redirect="/days"
+                              hx-indicator="#verify-indicator">
                             <div class="mb-3">
                                 <label for="otp" class="form-label">Verification Code</label>
                                 <input type="text" class="form-control" id="otp" name="otp" 
                                     value="{{ .OTP }}" placeholder="Enter 6-digit code" required 
-                                    pattern="[0-9]{6}" maxlength="6" autofocus>
+                                    pattern="[0-9]{6}" maxlength="6" 
+                                    autocomplete="one-time-code"
+                                    inputmode="numeric"
+                                    autofocus>
                                 <div class="form-text">
                                     The code was sent to you in the Telegram bot.
                                 </div>
                             </div>
-                            <input type="hidden" name="phone" value="{{ .Phone }}">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                    value="{{ .Phone }}" placeholder="Enter your phone number" required
+                                    autocomplete="tel">
+                                <div class="form-text">
+                                    Enter the phone number you shared with the Telegram bot.
+                                </div>
+                            </div>
                             
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">
+                                    <span id="verify-indicator" class="htmx-indicator spinner-border spinner-border-sm me-2" role="status"></span>
                                     Verify and Login
                                 </button>
                             </div>
@@ -40,9 +57,11 @@
                         
                         <div class="mt-4 text-center">
                             <p>
-                                <a href="/auth/login" class="text-decoration-none">
+                                <a href="/login" class="text-decoration-none">
                                     <i class="bi bi-arrow-left"></i> Back to Login
                                 </a>
+                                <br>
+                                <a href="/debug/request" class="text-muted small" target="_blank">Troubleshoot</a>
                             </p>
                         </div>
                     </div>
@@ -51,4 +70,30 @@
         </div>
     </div>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script>
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        // For server errors, stay on the page and show the error
+        if (evt.detail.xhr.status >= 500) {
+            evt.detail.shouldSwap = true;
+            evt.detail.isError = false;
+        }
+    });
+    
+    document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        // Check if we got a redirect response (302 Found)
+        if (evt.detail.xhr.status === 302 || 
+            evt.detail.xhr.getResponseHeader('HX-Redirect')) {
+            // Get the redirect URL
+            const redirectUrl = evt.detail.xhr.getResponseHeader('HX-Redirect') || 
+                               evt.detail.xhr.getResponseHeader('Location') || 
+                               '/days';
+            
+            // Perform a full page redirect
+            window.location.href = redirectUrl;
+            
+            // Prevent the swap
+            evt.detail.shouldSwap = false;
+        }
+    });
+    </script>
 {{ end }}
