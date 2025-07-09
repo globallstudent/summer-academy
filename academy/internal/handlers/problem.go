@@ -38,7 +38,7 @@ func (h *ProblemHandlers) ListDays(c *gin.Context) {
 	// Get user from context (set by auth middleware)
 	user, exists := c.Get("user")
 	if !exists {
-		c.Redirect(http.StatusFound, "/login")
+		c.Redirect(http.StatusFound, "/auth/login")
 		return
 	}
 
