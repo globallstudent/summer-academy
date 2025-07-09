@@ -4,10 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/globallstudent/academy/internal/config"
 	"github.com/globallstudent/academy/internal/database"
 	"github.com/globallstudent/academy/internal/models"
+	"github.com/google/uuid"
 )
 
 // UserHandlers contains handlers for user routes
@@ -49,8 +49,8 @@ func (h *UserHandlers) ProfilePage(c *gin.Context) {
 		parsedUUID, err := uuid.Parse(userIDString)
 		if err != nil {
 			c.HTML(http.StatusInternalServerError, "main", gin.H{
-				"Title": "Profile - Summer Academy",
-				"Error": "Invalid user ID format",
+				"Title":           "Profile - Summer Academy",
+				"Error":           "Invalid user ID format",
 				"IsAuthenticated": true,
 			})
 			return
@@ -72,21 +72,21 @@ func (h *UserHandlers) ProfilePage(c *gin.Context) {
 				return
 			}
 		}
-		
+
 		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Profile - Summer Academy",
-			"Error": "User ID not found or has invalid type",
+			"Title":           "Profile - Summer Academy",
+			"Error":           "User ID not found or has invalid type",
 			"IsAuthenticated": true,
 		})
 		return
 	}
-	
+
 	// Get user details
 	user, err := getUserByID(h.db, userUUID)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Error - Summer Academy",
-			"Error": "Failed to get user details",
+			"Title":           "Error - Summer Academy",
+			"Error":           "Failed to get user details",
 			"IsAuthenticated": true,
 		})
 		return

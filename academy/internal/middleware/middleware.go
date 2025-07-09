@@ -61,7 +61,7 @@ func Auth() gin.HandlerFunc {
 			Username: claims.Username,
 			Role:     claims.Role,
 		}
-		
+
 		// Set both individual fields and the complete user object
 		c.Set("userID", claims.UserID.String())
 		c.Set("username", claims.Username)

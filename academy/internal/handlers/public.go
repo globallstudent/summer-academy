@@ -118,7 +118,7 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "main", gin.H{
 			"Title": "Verify OTP - Summer Academy",
 			"Error": "Invalid verification code",
-			"OTP": otp,
+			"OTP":   otp,
 		})
 		return
 	}
@@ -137,7 +137,7 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 		c.HTML(http.StatusBadRequest, "main", gin.H{
 			"Title": "Verify OTP - Summer Academy",
 			"Error": "Invalid or expired verification code",
-			"OTP": otp,
+			"OTP":   otp,
 		})
 		return
 	}
@@ -154,7 +154,7 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	} else {
 		username = "Student" + otp[:4]
 	}
-	
+
 	user = models.User{
 		ID:           uuid.New(),
 		PhoneNumber:  phoneNumber,
@@ -172,7 +172,7 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "main", gin.H{
 			"Title": "Verify OTP - Summer Academy",
 			"Error": "Failed to generate session token",
-			"OTP": otp,
+			"OTP":   otp,
 		})
 		return
 	}
@@ -191,7 +191,7 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	// Set the user in the context for consistent behavior
 	c.Set("user", user)
 	c.Set("IsAuthenticated", true)
-	
+
 	// Redirect to days page
 	c.Redirect(http.StatusFound, "/days")
 }

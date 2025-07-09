@@ -110,7 +110,7 @@ func (b *Bot) handleLogin(c telebot.Context) error {
 
 	// Check if we already have this user's phone number
 	state, exists := userStates[userID]
-	
+
 	// If user hasn't shared their phone number yet
 	if !exists || state == nil || state.PhoneNumber == "" {
 		// Create a custom keyboard for phone number sharing
@@ -124,12 +124,12 @@ func (b *Bot) handleLogin(c telebot.Context) error {
 			kb,
 		)
 	}
-	
+
 	// User already has shared their phone number before, generate a new OTP
 	// Generate OTP
 	otp := generateOTP()
 	state.OTP = otp
-	
+
 	// Store OTP in Redis with expiration (5 minutes) if Redis is available
 	if b.redis != nil {
 		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
@@ -188,14 +188,14 @@ func (b *Bot) handleContact(c telebot.Context) error {
 	// Generate OTP immediately
 	otp := generateOTP()
 	state.OTP = otp
-	
+
 	// Store the username if available, otherwise use a default name
 	username := c.Sender().Username
 	if username == "" {
 		username = "User"
 	}
 	state.FullName = username
-	
+
 	// Store OTP in Redis with expiration (5 minutes) if Redis is available
 	if b.redis != nil {
 		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
@@ -222,12 +222,12 @@ func (b *Bot) handleContact(c telebot.Context) error {
 // handleText handles text messages
 func (b *Bot) handleText(c telebot.Context) error {
 	text := c.Text()
-	
+
 	// If the text is /login, handle it as the login command
 	if text == "/login" {
 		return b.handleLogin(c)
 	}
-	
+
 	userID := c.Sender().ID
 	state := userStates[userID]
 
