@@ -38,13 +38,14 @@ func (h *ProblemHandlers) ListDays(c *gin.Context) {
 	// Get all available days (in production, filter by unlock time)
 	days, err := getAvailableDays(h.db)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/days.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Available Days - Summer Academy",
 			"Error": "Failed to get available days",
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/days.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title": "Available Days - Summer Academy",
 		"Days":  days,
 	})
@@ -77,13 +78,15 @@ func (h *ProblemHandlers) DayDetail(c *gin.Context) {
 	// Get problems for this day
 	problems, err := getProblemsForDay(h.db, day)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/day_detail.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Day " + dayParam + " - Summer Academy",
 			"Error": "Failed to get problems for this day",
+			"Day":   day,
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/day_detail.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title":    "Day " + dayParam + " - Summer Academy",
 		"Day":      day,
 		"Problems": problems,
@@ -118,7 +121,8 @@ func (h *ProblemHandlers) ProblemDetail(c *gin.Context) {
 	// Get problem content
 	content, err := getProblemContent(problem.FilePath)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/problem_detail.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": problem.Title + " - Summer Academy",
 			"Error": "Failed to load problem content",
 		})
 		return
@@ -127,13 +131,14 @@ func (h *ProblemHandlers) ProblemDetail(c *gin.Context) {
 	// Get test cases (only non-hidden ones)
 	testcases, err := getTestcases(problem.ID, false)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/problem_detail.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": problem.Title + " - Summer Academy",
 			"Error": "Failed to load test cases",
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/problem_detail.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title":     problem.Title + " - Summer Academy",
 		"Problem":   problem,
 		"Content":   content,
@@ -170,13 +175,19 @@ func (h *ProblemHandlers) AdminProblemList(c *gin.Context) {
 }
 
 // CreateProblem godoc
-// @Summary      Create new problem
-// @Description  Creates a new problem in the platform
+// @Summary      Create a new problem
+// @Description  Creates a new coding problem with the provided details
 // @Tags         admin
-// @Accept       json
+// @Accept       multipart/form-data
 // @Produce      json
 // @Security     JWTCookie
-// @Param        problem  body      object  true  "Problem details"
+// @Param        day          formData  int     true  "Day number"
+// @Param        type         formData  string  true  "Problem type (dsa, linux, build)"
+// @Param        slug         formData  string  true  "Problem slug (unique identifier)"
+// @Param        title        formData  string  true  "Problem title"
+// @Param        file_path    formData  string  true  "Path to problem content file"
+// @Param        score        formData  int     true  "Maximum score for the problem"
+// @Param        unlock_time  formData  string  false "Time when the problem becomes available (RFC3339 format)"
 // @Success      200  {object}  map[string]interface{}  "Problem created successfully"
 // @Failure      400  {object}  map[string]interface{}  "Bad request"
 // @Failure      401  {object}  map[string]interface{}  "Unauthorized"
@@ -189,14 +200,20 @@ func (h *ProblemHandlers) CreateProblem(c *gin.Context) {
 }
 
 // UpdateProblem godoc
-// @Summary      Update existing problem
-// @Description  Updates an existing problem in the platform
+// @Summary      Update an existing problem
+// @Description  Updates an existing coding problem with the provided details
 // @Tags         admin
-// @Accept       json
+// @Accept       multipart/form-data
 // @Produce      json
 // @Security     JWTCookie
-// @Param        id       path      string  true  "Problem ID"
-// @Param        problem  body      object  true  "Problem details"
+// @Param        id           path      string  true  "Problem ID"
+// @Param        day          formData  int     false "Day number"
+// @Param        type         formData  string  false "Problem type (dsa, linux, build)"
+// @Param        slug         formData  string  false "Problem slug (unique identifier)"
+// @Param        title        formData  string  false "Problem title"
+// @Param        file_path    formData  string  false "Path to problem content file"
+// @Param        score        formData  int     false "Maximum score for the problem"
+// @Param        unlock_time  formData  string  false "Time when the problem becomes available (RFC3339 format)"
 // @Success      200  {object}  map[string]interface{}  "Problem updated successfully"
 // @Failure      400  {object}  map[string]interface{}  "Bad request"
 // @Failure      401  {object}  map[string]interface{}  "Unauthorized"

@@ -1,0 +1,35 @@
+{{ define "content" }}
+<div class="container my-5">
+    <h1>Available Days</h1>
+    <p class="lead">Select a day to view available challenges</p>
+
+    {{ if .Error }}
+    <div class="alert alert-warning">{{ .Error }}</div>
+    {{ else if .Days }}
+    <div class="row mt-4">
+        {{ range .Days }}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    Day {{ . }}
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Access the challenges for Day {{ . }}.</p>
+                </div>
+                <div class="card-footer">
+                    <a href="/days/{{ . }}" class="btn btn-outline-primary">View Challenges</a>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="alert alert-info mt-4">No days are currently available. Check back soon!</div>
+    {{ end }}
+    
+    <div class="mt-4">
+        <a href="/" class="btn btn-primary">Home</a>
+        <a href="/leaderboard" class="btn btn-success">View Leaderboard</a>
+    </div>
+</div>
+{{ end }}

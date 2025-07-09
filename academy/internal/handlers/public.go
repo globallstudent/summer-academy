@@ -38,13 +38,14 @@ func (h *PublicHandlers) HomePage(c *gin.Context) {
 	// Get today's problem if available
 	todayProblems, err := getTodaysProblems(h.db)
 	if err != nil {
-		c.HTML(http.StatusOK, "pages/home.html", gin.H{
+		c.HTML(http.StatusOK, "main", gin.H{
+			"Title": "Summer Academy - Learn DSA and Linux",
 			"Error": "Failed to get today's problems",
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/home.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title":         "Summer Academy - Learn DSA and Linux",
 		"TodayProblems": todayProblems,
 	})
@@ -59,7 +60,7 @@ func (h *PublicHandlers) HomePage(c *gin.Context) {
 // @Success      200  {object}  nil  "Login page"
 // @Router       /login [get]
 func (h *PublicHandlers) LoginPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "pages/login.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title": "Login - Summer Academy",
 	})
 }
@@ -79,7 +80,7 @@ func (h *PublicHandlers) VerifyOTPPage(c *gin.Context) {
 	otp := c.Query("otp")
 
 	// Render the verification page
-	c.HTML(http.StatusOK, "pages/verify.html", gin.H{
+	c.HTML(http.StatusOK, "main", gin.H{
 		"Title": "Verify OTP - Summer Academy",
 		"Phone": phoneNumber,
 		"OTP":   otp,
@@ -190,15 +191,16 @@ func (h *PublicHandlers) LeaderboardPage(c *gin.Context) {
 	// Get leaderboard entries
 	entries, err := getLeaderboard(h.db)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/leaderboard.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Leaderboard - Summer Academy",
 			"Error": "Failed to get leaderboard data",
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/leaderboard.html", gin.H{
-		"Title":   "Leaderboard - Summer Academy",
-		"Entries": entries,
+	c.HTML(http.StatusOK, "main", gin.H{
+		"Title": "Leaderboard - Summer Academy",
+		"Users": entries,  // Changed from Entries to Users to match the leaderboard.html template
 	})
 }
 
@@ -209,7 +211,23 @@ func getTodaysProblems(db *database.DB) ([]models.Problem, error) {
 }
 
 // Helper function to get leaderboard entries
-func getLeaderboard(db *database.DB) ([]models.LeaderboardEntry, error) {
+func getLeaderboard(db *database.DB) ([]models.User, error) {
 	// In production, actually query the database
-	return []models.LeaderboardEntry{}, nil
+	// For now, return sample data
+	return []models.User{
+		{
+			ID:           uuid.New(),
+			PhoneNumber:  "+1234567890",
+			Username:     "student1",
+			RegisteredAt: time.Now().Add(-24 * time.Hour),
+			Role:         "user",
+		},
+		{
+			ID:           uuid.New(),
+			PhoneNumber:  "+1987654321",
+			Username:     "student2",
+			RegisteredAt: time.Now().Add(-48 * time.Hour),
+			Role:         "user",
+		},
+	}, nil
 }

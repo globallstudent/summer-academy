@@ -1,0 +1,55 @@
+{{ define "content" }}
+<div class="container my-5">
+    <h1>Welcome to Summer Academy</h1>
+    <p class="lead">Learn Data Structures, Algorithms, and Linux through interactive challenges.</p>
+
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    Today's Challenges
+                </div>
+                <div class="card-body">
+                    {{ if .Error }}
+                    <div class="alert alert-warning">{{ .Error }}</div>
+                    {{ else if .TodayProblems }}
+                    <ul class="list-group list-group-flush">
+                        {{ range .TodayProblems }}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="/problems/{{ .Slug }}">{{ .Title }}</a>
+                            <span class="badge bg-primary rounded-pill">{{ .Score }} points</span>
+                        </li>
+                        {{ end }}
+                    </ul>
+                    {{ else }}
+                    <p>No challenges available for today yet. Check back later!</p>
+                    {{ end }}
+                </div>
+                <div class="card-footer">
+                    <a href="/days" class="btn btn-outline-primary">View All Days</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    Get Started
+                </div>
+                <div class="card-body">
+                    <p>Summer Academy is a platform to practice coding challenges and develop your skills in:</p>
+                    <ul>
+                        <li>Data Structures & Algorithms</li>
+                        <li>Linux Command Line</li>
+                        <li>System Design</li>
+                    </ul>
+                    <p>Login to start solving challenges and track your progress!</p>
+                </div>
+                <div class="card-footer">
+                    <a href="/login" class="btn btn-outline-success">Login</a>
+                    <a href="/leaderboard" class="btn btn-outline-info">View Leaderboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

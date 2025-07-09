@@ -2,6 +2,7 @@ package telegrambot
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -76,18 +77,26 @@ func (b *Bot) Stop() {
 // setupHandlers configures all the bot's command and message handlers
 func (b *Bot) setupHandlers() {
 	// Command handlers
-	b.bot.Handle("/start", b.handleStart)
-	b.bot.Handle("/login", b.handleLogin)
+	b.bot.Handle("/start", func(c telebot.Context) error {
+		return b.handleStart(c)
+	})
+	b.bot.Handle("/login", func(c telebot.Context) error {
+		return b.handleLogin(c)
+	})
 
 	// Contact button handler
-	b.bot.Handle(telebot.OnContact, b.handleContact)
+	b.bot.Handle(telebot.OnContact, func(c telebot.Context) error {
+		return b.handleContact(c)
+	})
 
 	// Text message handler (for name input)
-	b.bot.Handle(telebot.OnText, b.handleText)
+	b.bot.Handle(telebot.OnText, func(c telebot.Context) error {
+		return b.handleText(c)
+	})
 }
 
 // handleStart handles the /start command
-func (b *Bot) handleStart(c *telebot.Context) error {
+func (b *Bot) handleStart(c telebot.Context) error {
 	return c.Send(
 		"👋 Welcome to Summer Academy Bot!\n\n" +
 			"I will help you authenticate for the Summer Academy platform.\n\n" +
@@ -104,12 +113,8 @@ func (b *Bot) handleLogin(c telebot.Context) error {
 
 	// Create a custom keyboard for phone number sharing
 	kb := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	kb.Reply(
-		kb.Row(telebot.Button{
-			Text:    "📱 Share Phone Number",
-			Contact: true,
-		}),
-	)
+	shareBtn := kb.Contact("📱 Share Phone Number")
+	kb.Reply(kb.Row(shareBtn))
 
 	return c.Send(
 		"Please share your phone number to authenticate.\n\n"+
@@ -180,12 +185,18 @@ func (b *Bot) handleText(c telebot.Context) error {
 		otp := generateOTP()
 		state.OTP = otp
 
-		// Store OTP in Redis with expiration (5 minutes)
+	// Store OTP in Redis with expiration (5 minutes) if Redis is available
+	if b.redis != nil {
 		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
 		if err != nil {
 			// Log the error in production
-			return c.Send("An error occurred. Please try again later.")
+			log.Printf("Error storing OTP in Redis: %v", err)
+			return c.Send("An error occurred while storing OTP. Please try again later.")
 		}
+	} else {
+		// In development mode without Redis, just log the OTP
+		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
+	}
 
 		// Create login URL with parameters
 		loginURL := fmt.Sprintf("%s?phone=%s&otp=%s", b.loginURL, state.PhoneNumber, otp)

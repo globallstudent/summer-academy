@@ -1,20 +1,21 @@
 package main
 
 import (
-	"log"
-	"os"
+"log"
+"os"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/globallstudent/academy/docs"
-	"github.com/globallstudent/academy/internal/config"
-	"github.com/globallstudent/academy/internal/database"
-	"github.com/globallstudent/academy/internal/handlers"
-	"github.com/globallstudent/academy/internal/middleware"
-	// "github.com/globallstudent/academy/internal/telegrambot"
-	"github.com/joho/godotenv"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+"github.com/gin-contrib/cors"
+"github.com/gin-gonic/gin"
+"github.com/joho/godotenv"
+swaggerFiles "github.com/swaggo/files"
+ginSwagger "github.com/swaggo/gin-swagger"
+"github.com/globallstudent/academy/docs"
+"github.com/globallstudent/academy/internal/config"
+"github.com/globallstudent/academy/internal/database"
+"github.com/globallstudent/academy/internal/handlers"
+"github.com/globallstudent/academy/internal/middleware"
+"github.com/globallstudent/academy/internal/telegrambot"
+"github.com/globallstudent/academy/internal/template"
 )
 
 // @title           Summer Academy API
@@ -58,12 +59,16 @@ func main() {
 	}
 	defer db.Close()
 
-	// Setup Redis connection
-	redis, err := database.ConnectRedis(cfg.Redis)
+	// Setup Redis connection (with fallback for development)
+	var redis *database.Redis
+	redis, err = database.ConnectRedis(cfg.Redis)
 	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		log.Printf("Warning: Failed to connect to Redis: %v", err)
+		log.Println("Continuing without Redis for development purposes.")
+		redis = nil
+	} else {
+		defer redis.Close()
 	}
-	defer redis.Close()
 
 	// Set Gin mode based on environment
 	if cfg.Environment == "production" {
@@ -82,7 +87,8 @@ func main() {
 	// Set up static file serving
 	router.Static("/static", "./web/static")
 
-	// Load HTML templates
+	// Load HTML templates with functions
+	router.SetFuncMap(template.Functions())
 	router.LoadHTMLGlob("web/templates/**/*")
 
 	// Apply middlewares
@@ -101,16 +107,22 @@ func main() {
 		port = "8080"
 	}
 
-	// Initialize Telegram bot (commented out for now)
-	// serverURL := "http://localhost:" + port
-	// if os.Getenv("SERVER_URL") != "" {
-	//     serverURL = os.Getenv("SERVER_URL")
-	// }
+	// Initialize Telegram bot
+	serverURL := "http://localhost:" + port
+	if os.Getenv("SERVER_URL") != "" {
+		serverURL = os.Getenv("SERVER_URL")
+	}
 
 	// Only start the bot if token is provided
-	// Temporarily commented out due to telegrambot import issues
 	if cfg.Telegram.BotToken != "" {
-		log.Println("Telegram bot support is temporarily disabled")
+		bot, err := telegrambot.New(cfg, redis, db, serverURL)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize Telegram bot: %v", err)
+		} else {
+			// Start the bot in a goroutine
+			go bot.Start()
+			log.Println("Telegram bot started successfully")
+		}
 	} else {
 		log.Println("No Telegram bot token provided, skipping bot initialization")
 	}

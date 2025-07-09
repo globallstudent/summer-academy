@@ -70,15 +70,43 @@ paths:
       - admin
     post:
       consumes:
-      - application/json
-      description: Creates a new problem in the platform
+      - multipart/form-data
+      description: Creates a new coding problem with the provided details
       parameters:
-      - description: Problem details
-        in: body
-        name: problem
+      - description: Day number
+        in: formData
+        name: day
         required: true
-        schema:
-          type: object
+        type: integer
+      - description: Problem type (dsa, linux, build)
+        in: formData
+        name: type
+        required: true
+        type: string
+      - description: Problem slug (unique identifier)
+        in: formData
+        name: slug
+        required: true
+        type: string
+      - description: Problem title
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Path to problem content file
+        in: formData
+        name: file_path
+        required: true
+        type: string
+      - description: Maximum score for the problem
+        in: formData
+        name: score
+        required: true
+        type: integer
+      - description: Time when the problem becomes available (RFC3339 format)
+        in: formData
+        name: unlock_time
+        type: string
       produces:
       - application/json
       responses:
@@ -109,26 +137,48 @@ paths:
             type: object
       security:
       - JWTCookie: []
-      summary: Create new problem
+      summary: Create a new problem
       tags:
       - admin
   /admin/problems/{id}:
     put:
       consumes:
-      - application/json
-      description: Updates an existing problem in the platform
+      - multipart/form-data
+      description: Updates an existing coding problem with the provided details
       parameters:
       - description: Problem ID
         in: path
         name: id
         required: true
         type: string
-      - description: Problem details
-        in: body
-        name: problem
-        required: true
-        schema:
-          type: object
+      - description: Day number
+        in: formData
+        name: day
+        type: integer
+      - description: Problem type (dsa, linux, build)
+        in: formData
+        name: type
+        type: string
+      - description: Problem slug (unique identifier)
+        in: formData
+        name: slug
+        type: string
+      - description: Problem title
+        in: formData
+        name: title
+        type: string
+      - description: Path to problem content file
+        in: formData
+        name: file_path
+        type: string
+      - description: Maximum score for the problem
+        in: formData
+        name: score
+        type: integer
+      - description: Time when the problem becomes available (RFC3339 format)
+        in: formData
+        name: unlock_time
+        type: string
       produces:
       - application/json
       responses:
@@ -164,7 +214,7 @@ paths:
             type: object
       security:
       - JWTCookie: []
-      summary: Update existing problem
+      summary: Update an existing problem
       tags:
       - admin
   /admin/users:

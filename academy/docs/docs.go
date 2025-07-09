@@ -117,9 +117,9 @@ const docTemplate = `{
                         "JWTCookie": []
                     }
                 ],
-                "description": "Creates a new problem in the platform",
+                "description": "Creates a new coding problem with the provided details",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -127,16 +127,55 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
-                "summary": "Create new problem",
+                "summary": "Create a new problem",
                 "parameters": [
                     {
-                        "description": "Problem details",
-                        "name": "problem",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object"
-                        }
+                        "type": "integer",
+                        "description": "Day number",
+                        "name": "day",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem type (dsa, linux, build)",
+                        "name": "type",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem slug (unique identifier)",
+                        "name": "slug",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem title",
+                        "name": "title",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Path to problem content file",
+                        "name": "file_path",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum score for the problem",
+                        "name": "score",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Time when the problem becomes available (RFC3339 format)",
+                        "name": "unlock_time",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -185,9 +224,9 @@ const docTemplate = `{
                         "JWTCookie": []
                     }
                 ],
-                "description": "Updates an existing problem in the platform",
+                "description": "Updates an existing coding problem with the provided details",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -195,7 +234,7 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
-                "summary": "Update existing problem",
+                "summary": "Update an existing problem",
                 "parameters": [
                     {
                         "type": "string",
@@ -205,13 +244,46 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Problem details",
-                        "name": "problem",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object"
-                        }
+                        "type": "integer",
+                        "description": "Day number",
+                        "name": "day",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem type (dsa, linux, build)",
+                        "name": "type",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem slug (unique identifier)",
+                        "name": "slug",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problem title",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Path to problem content file",
+                        "name": "file_path",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum score for the problem",
+                        "name": "score",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Time when the problem becomes available (RFC3339 format)",
+                        "name": "unlock_time",
+                        "in": "formData"
                     }
                 ],
                 "responses": {

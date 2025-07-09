@@ -1,0 +1,38 @@
+{{ define "content" }}
+<div class="container my-5">
+    <h1>Day {{ .Day }} Challenges</h1>
+    <p class="lead">Available challenges for Day {{ .Day }}</p>
+
+    {{ if .Error }}
+    <div class="alert alert-warning">{{ .Error }}</div>
+    {{ else if .Problems }}
+    <div class="row mt-4">
+        {{ range .Problems }}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>{{ .Title }}</span>
+                    <span class="badge bg-primary">{{ .Score }} points</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Type:</strong> {{ .Type }}</p>
+                    <p class="card-text">Challenge for Day {{ .Day }}</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <a href="/problems/{{ .Slug }}" class="btn btn-outline-primary">View Details</a>
+                    <a href="/submit/{{ .Slug }}" class="btn btn-outline-success">Submit Solution</a>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="alert alert-info mt-4">No challenges are available for Day {{ .Day }}.</div>
+    {{ end }}
+    
+    <div class="mt-4">
+        <a href="/days" class="btn btn-primary">Back to Days</a>
+        <a href="/" class="btn btn-secondary">Home</a>
+    </div>
+</div>
+{{ end }}
