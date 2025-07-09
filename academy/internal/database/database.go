@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourusername/academy/internal/config"
+	"github.com/globallstudent/academy/internal/config"
 )
 
 // DB represents a database connection pool

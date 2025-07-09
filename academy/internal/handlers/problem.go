@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/models"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/models"
 )
 
 // ProblemHandlers contains handlers for problem routes
@@ -23,7 +23,17 @@ func NewProblemHandlers(db *database.DB, cfg *config.Config) *ProblemHandlers {
 	return &ProblemHandlers{db: db, cfg: cfg}
 }
 
-// ListDays handles the days listing page
+// ListDays godoc
+// @Summary      List available days
+// @Description  Displays a list of all available days with their problems
+// @Tags         problems
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Days list page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /days [get]
 func (h *ProblemHandlers) ListDays(c *gin.Context) {
 	// Get all available days (in production, filter by unlock time)
 	days, err := getAvailableDays(h.db)
@@ -40,7 +50,20 @@ func (h *ProblemHandlers) ListDays(c *gin.Context) {
 	})
 }
 
-// DayDetail handles the day detail page
+// DayDetail godoc
+// @Summary      Show day detail page
+// @Description  Displays details of a specific day and its problems
+// @Tags         problems
+// @Accept       html
+// @Produce      html
+// @Param        day   path      string  true  "Day number"
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Day detail page"
+// @Failure      400  {object}  nil  "Invalid day parameter"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      404  {object}  nil  "Day not found"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /days/{day} [get]
 func (h *ProblemHandlers) DayDetail(c *gin.Context) {
 	dayParam := c.Param("day")
 	day, err := strconv.Atoi(dayParam)
@@ -67,7 +90,19 @@ func (h *ProblemHandlers) DayDetail(c *gin.Context) {
 	})
 }
 
-// ProblemDetail handles the problem detail page
+// ProblemDetail godoc
+// @Summary      Show problem detail page
+// @Description  Displays details of a specific problem including description and examples
+// @Tags         problems
+// @Accept       html
+// @Produce      html
+// @Param        slug  path      string  true  "Problem slug"
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Problem detail page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      404  {object}  nil  "Problem not found"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /problems/{slug} [get]
 func (h *ProblemHandlers) ProblemDetail(c *gin.Context) {
 	slug := c.Param("slug")
 
@@ -106,7 +141,18 @@ func (h *ProblemHandlers) ProblemDetail(c *gin.Context) {
 	})
 }
 
-// AdminProblemList handles the admin problem listing page
+// AdminProblemList godoc
+// @Summary      List all problems (admin)
+// @Description  Lists all problems for admin management
+// @Tags         admin
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Admin problem list page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      403  {object}  nil  "Forbidden - Not admin"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /admin/problems [get]
 func (h *ProblemHandlers) AdminProblemList(c *gin.Context) {
 	// Get all problems
 	problems, err := getAllProblems(h.db)
@@ -123,13 +169,41 @@ func (h *ProblemHandlers) AdminProblemList(c *gin.Context) {
 	})
 }
 
-// CreateProblem handles creating a new problem
+// CreateProblem godoc
+// @Summary      Create new problem
+// @Description  Creates a new problem in the platform
+// @Tags         admin
+// @Accept       json
+// @Produce      json
+// @Security     JWTCookie
+// @Param        problem  body      object  true  "Problem details"
+// @Success      200  {object}  map[string]interface{}  "Problem created successfully"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden - Admin access required"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Router       /admin/problems [post]
 func (h *ProblemHandlers) CreateProblem(c *gin.Context) {
 	// In production, validate and create the problem
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Problem created"})
 }
 
-// UpdateProblem handles updating an existing problem
+// UpdateProblem godoc
+// @Summary      Update existing problem
+// @Description  Updates an existing problem in the platform
+// @Tags         admin
+// @Accept       json
+// @Produce      json
+// @Security     JWTCookie
+// @Param        id       path      string  true  "Problem ID"
+// @Param        problem  body      object  true  "Problem details"
+// @Success      200  {object}  map[string]interface{}  "Problem updated successfully"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      403  {object}  map[string]interface{}  "Forbidden - Admin access required"
+// @Failure      404  {object}  map[string]interface{}  "Problem not found"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Router       /admin/problems/{id} [put]
 func (h *ProblemHandlers) UpdateProblem(c *gin.Context) {
 	// In production, validate and update the problem
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Problem updated"})

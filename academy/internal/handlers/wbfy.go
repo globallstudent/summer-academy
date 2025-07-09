@@ -13,8 +13,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
 )
 
 // WBFYHandlers contains handlers for WBFY terminal integration
@@ -83,7 +83,20 @@ func (h *WBFYHandlers) ReleasePort(sessionID string) {
 	delete(h.portMap, sessionID)
 }
 
-// CreateTerminal handles creating a new terminal session
+// CreateTerminal godoc
+// @Summary      Create a new terminal session
+// @Description  Creates a new WBFY terminal session for a problem
+// @Tags         terminal
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     JWTCookie
+// @Param        slug        path      string  true  "Problem slug"
+// @Param        language    formData  string  false  "Programming language (default: bash)"
+// @Success      202  {object}  map[string]interface{}  "Terminal session created"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Failure      503  {object}  map[string]interface{}  "Service unavailable - no ports available"
+// @Router       /terminal/{slug} [post]
 func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 	slug := c.Param("slug")
 	language := c.DefaultPostForm("language", "bash")
@@ -157,7 +170,7 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 			"language":   language,
 			"start_time": time.Now(),
 		}
-		
+
 		sessionJSON, _ := json.Marshal(sessionData)
 		if err := os.WriteFile(statusFile, sessionJSON, 0644); err != nil {
 			fmt.Printf("Failed to write session data: %v\n", err)
@@ -184,18 +197,18 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 			h.ReleasePort(sessionID)
 			return
 		}
-		
+
 		containerID := string(out)[:12] // Get container ID from docker output
-		
+
 		// Store container info for cleanup
 		containerInfo := map[string]string{
-			"container_id": containerID,
+			"container_id":   containerID,
 			"container_name": containerName,
-			"session_id":   sessionID,
+			"session_id":     sessionID,
 		}
 		containerJSON, _ := json.Marshal(containerInfo)
 		os.WriteFile(filepath.Join(tempDir, "container.json"), containerJSON, 0644)
-		
+
 		// Create a session with 2 hour expiry
 		session := TerminalSession{
 			ID:            sessionID,
@@ -210,10 +223,10 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 			CreatedAt:     time.Now(),
 			ExpiresAt:     time.Now().Add(2 * time.Hour),
 		}
-		
+
 		// Store in memory map
 		h.sessionMap[sessionID] = &session
-		
+
 		// Store session in database (could use Redis in production)
 		h.storeTerminalSession(session)
 	}()
@@ -237,9 +250,9 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 	}
 
 	// Generate the terminal URL
-	terminalURL := fmt.Sprintf("%s://%s/terminal/%s", 
-		protocol, 
-		c.Request.Host, 
+	terminalURL := fmt.Sprintf("%s://%s/terminal/%s",
+		protocol,
+		c.Request.Host,
 		sessionID)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -249,16 +262,26 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 	})
 }
 
-// TerminalPage handles displaying the terminal page
+// TerminalPage godoc
+// @Summary      Display terminal interface
+// @Description  Renders the terminal interface for an active terminal session
+// @Tags         terminal
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Param        id    path      string  true  "Terminal session ID"
+// @Success      200  {object}  nil  "Terminal page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Router       /terminal/{id} [get]
 func (h *WBFYHandlers) TerminalPage(c *gin.Context) {
 	sessionID := c.Param("id")
-	
+
 	// Get session from memory map
 	session, exists := h.sessionMap[sessionID]
 	if !exists {
 		// In a production environment, you might want to fetch from database
 		// and recreate the container if it doesn't exist
-		
+
 		c.HTML(http.StatusOK, "pages/terminal.html", gin.H{
 			"Title":     "Terminal - Summer Academy",
 			"SessionID": sessionID,
@@ -282,10 +305,10 @@ func (h *WBFYHandlers) TerminalPage(c *gin.Context) {
 	if c.Request.TLS != nil {
 		wsProtocol = "wss"
 	}
-	
-	wsURL := fmt.Sprintf("%s://%s/ws/%s", 
-		wsProtocol, 
-		c.Request.Host, 
+
+	wsURL := fmt.Sprintf("%s://%s/ws/%s",
+		wsProtocol,
+		c.Request.Host,
 		sessionID)
 
 	c.HTML(http.StatusOK, "pages/terminal.html", gin.H{
@@ -302,7 +325,7 @@ func (h *WBFYHandlers) TerminalPage(c *gin.Context) {
 // WebSocketProxy handles WebSocket proxying to the WBFY container
 func (h *WBFYHandlers) WebSocketProxy(c *gin.Context) {
 	sessionID := c.Param("id")
-	
+
 	// Get session from memory map
 	session, exists := h.sessionMap[sessionID]
 	if !exists {
@@ -312,13 +335,13 @@ func (h *WBFYHandlers) WebSocketProxy(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Construct the target WebSocket URL
 	targetURL := fmt.Sprintf("ws://localhost:%d/ws", session.Port)
-	
+
 	// TODO: Implement WebSocket proxy to forward WebSocket connection to the container
 	// This would require a WebSocket proxy library or implementation
-	
+
 	// For now, just return the URL for frontend to connect directly
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
@@ -329,7 +352,7 @@ func (h *WBFYHandlers) WebSocketProxy(c *gin.Context) {
 // CleanupTerminal handles cleaning up terminal sessions
 func (h *WBFYHandlers) CleanupTerminal(c *gin.Context) {
 	sessionID := c.Param("id")
-	
+
 	// Get session
 	session, exists := h.sessionMap[sessionID]
 	if !exists {
@@ -339,24 +362,24 @@ func (h *WBFYHandlers) CleanupTerminal(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Stop and remove the container
 	if session.ContainerName != "" {
 		cmd := exec.Command("docker", "stop", session.ContainerName)
 		cmd.Run() // Ignore errors, container might already be stopped
 	}
-	
+
 	// Delete the temporary directory
 	if session.TempDir != "" {
 		os.RemoveAll(session.TempDir)
 	}
-	
+
 	// Release the port
 	h.ReleasePort(sessionID)
-	
+
 	// Remove from memory map
 	delete(h.sessionMap, sessionID)
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
 		"message": "Terminal session cleaned up",
@@ -376,10 +399,10 @@ func (h *WBFYHandlers) StartCleanupJob() {
 // cleanupExpiredSessions cleans up expired terminal sessions
 func (h *WBFYHandlers) cleanupExpiredSessions() {
 	now := time.Now()
-	
+
 	// Create a list of sessions to remove to avoid concurrent map iteration
 	var sessionsToRemove []string
-	
+
 	// Check all sessions
 	h.portMutex.Lock()
 	for id, session := range h.sessionMap {
@@ -388,28 +411,28 @@ func (h *WBFYHandlers) cleanupExpiredSessions() {
 		}
 	}
 	h.portMutex.Unlock()
-	
+
 	// Remove expired sessions
 	for _, id := range sessionsToRemove {
 		session := h.sessionMap[id]
-		
+
 		// Stop and remove the container
 		if session.ContainerName != "" {
 			cmd := exec.Command("docker", "stop", session.ContainerName)
 			cmd.Run() // Ignore errors, container might already be stopped
 		}
-		
+
 		// Delete the temporary directory
 		if session.TempDir != "" {
 			os.RemoveAll(session.TempDir)
 		}
-		
+
 		// Release the port
 		h.ReleasePort(id)
-		
+
 		// Remove from memory map
 		delete(h.sessionMap, id)
-		
+
 		fmt.Printf("Cleaned up expired session: %s\n", id)
 	}
 }
@@ -451,32 +474,32 @@ func copyProblemFiles(src, dst string) error {
 		if err != nil {
 			return err
 		}
-		
+
 		// Calculate destination path
 		relPath, err := filepath.Rel(src, path)
 		if err != nil {
 			return err
 		}
 		dstPath := filepath.Join(dst, relPath)
-		
+
 		// If it's a directory, create it
 		if info.IsDir() {
 			return os.MkdirAll(dstPath, 0755)
 		}
-		
+
 		// Copy the file
 		srcFile, err := os.Open(path)
 		if err != nil {
 			return err
 		}
 		defer srcFile.Close()
-		
+
 		dstFile, err := os.Create(dstPath)
 		if err != nil {
 			return err
 		}
 		defer dstFile.Close()
-		
+
 		_, err = io.Copy(dstFile, srcFile)
 		return err
 	})
@@ -487,20 +510,20 @@ func (h *WBFYHandlers) storeTerminalSession(session TerminalSession) error {
 	// In a production environment, this would store the session in the database
 	// For now, we'll just log it
 	fmt.Printf("Storing terminal session: %+v\n", session)
-	
+
 	// Here's how you would implement the database storage:
 	/*
-	ctx := context.Background()
-	_, err := h.db.Pool.Exec(ctx, `
-		INSERT INTO terminal_sessions 
-		(id, user_id, problem_id, port, container_id, container_name, command, language, temp_dir, created_at, expires_at) 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		session.ID, session.UserID, session.ProblemID, session.Port, 
-		session.ContainerID, session.ContainerName, session.Command, session.Language,
-		session.TempDir, session.CreatedAt, session.ExpiresAt)
-	return err
+		ctx := context.Background()
+		_, err := h.db.Pool.Exec(ctx, `
+			INSERT INTO terminal_sessions
+			(id, user_id, problem_id, port, container_id, container_name, command, language, temp_dir, created_at, expires_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+			session.ID, session.UserID, session.ProblemID, session.Port,
+			session.ContainerID, session.ContainerName, session.Command, session.Language,
+			session.TempDir, session.CreatedAt, session.ExpiresAt)
+		return err
 	*/
-	
+
 	return nil
 }
 

@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
 	"gopkg.in/telebot.v3"
 )
 

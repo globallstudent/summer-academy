@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globallstudent/academy/internal/auth"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/models"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/auth"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/models"
 )
 
 // PublicHandlers contains handlers for public routes
@@ -25,7 +25,15 @@ func NewPublicHandlers(db *database.DB, redis *database.Redis, cfg *config.Confi
 	return &PublicHandlers{db: db, redis: redis, cfg: cfg}
 }
 
-// HomePage handles the home page
+// HomePage godoc
+// @Summary      Show the home page
+// @Description  Renders the home page with today's problems if available
+// @Tags         public
+// @Accept       html
+// @Produce      html
+// @Success      200  {object}  nil  "Home page"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       / [get]
 func (h *PublicHandlers) HomePage(c *gin.Context) {
 	// Get today's problem if available
 	todayProblems, err := getTodaysProblems(h.db)
@@ -42,14 +50,30 @@ func (h *PublicHandlers) HomePage(c *gin.Context) {
 	})
 }
 
-// LoginPage handles the login page
+// LoginPage godoc
+// @Summary      Show the login page
+// @Description  Renders the login page for user authentication
+// @Tags         auth
+// @Accept       html
+// @Produce      html
+// @Success      200  {object}  nil  "Login page"
+// @Router       /login [get]
 func (h *PublicHandlers) LoginPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "pages/login.html", gin.H{
 		"Title": "Login - Summer Academy",
 	})
 }
 
-// VerifyOTPPage handles the OTP verification page
+// VerifyOTPPage godoc
+// @Summary      Show OTP verification page
+// @Description  Renders the OTP verification page with phone number and OTP if provided
+// @Tags         auth
+// @Accept       html
+// @Produce      html
+// @Param        phone  query     string  false  "Phone number"
+// @Param        otp    query     string  false  "OTP code"
+// @Success      200    {object}  nil     "Verification page"
+// @Router       /verify [get]
 func (h *PublicHandlers) VerifyOTPPage(c *gin.Context) {
 	phoneNumber := c.Query("phone")
 	otp := c.Query("otp")
@@ -62,7 +86,18 @@ func (h *PublicHandlers) VerifyOTPPage(c *gin.Context) {
 	})
 }
 
-// ProcessLogin handles login form submission
+// ProcessLogin godoc
+// @Summary      Process login form submission
+// @Description  Validates OTP, creates/updates user, and issues JWT token on successful login
+// @Tags         auth
+// @Accept       multipart/form-data
+// @Produce      html
+// @Param        phone  formData  string  true   "Phone number"
+// @Param        otp    formData  string  true   "OTP code"
+// @Success      302    {object}  nil     "Redirect to days page"
+// @Failure      400    {object}  nil     "Bad request"
+// @Failure      500    {object}  nil     "Internal server error"
+// @Router       /login [post]
 func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	// Create background context
 	_ = context.Background()
@@ -142,7 +177,15 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/days")
 }
 
-// LeaderboardPage handles the leaderboard page
+// LeaderboardPage godoc
+// @Summary      Show leaderboard page
+// @Description  Displays a leaderboard with top users and their scores
+// @Tags         public
+// @Accept       html
+// @Produce      html
+// @Success      200  {object}  nil  "Leaderboard page"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /leaderboard [get]
 func (h *PublicHandlers) LeaderboardPage(c *gin.Context) {
 	// Get leaderboard entries
 	entries, err := getLeaderboard(h.db)

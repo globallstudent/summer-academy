@@ -1,0 +1,602 @@
+basePath: /
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: API Server for Summer Academy educational platform
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Summer Academy API
+  version: "1.0"
+paths:
+  /:
+    get:
+      consumes:
+      - text/html
+      description: Renders the home page with today's problems if available
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Home page
+        "500":
+          description: Internal server error
+      summary: Show the home page
+      tags:
+      - public
+  /admin/:
+    get:
+      consumes:
+      - text/html
+      description: Displays admin dashboard with platform statistics
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Admin dashboard
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin access required
+      security:
+      - JWTCookie: []
+      summary: Admin dashboard
+      tags:
+      - admin
+  /admin/problems:
+    get:
+      consumes:
+      - text/html
+      description: Lists all problems for admin management
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Admin problem list page
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Not admin
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: List all problems (admin)
+      tags:
+      - admin
+    post:
+      consumes:
+      - application/json
+      description: Creates a new problem in the platform
+      parameters:
+      - description: Problem details
+        in: body
+        name: problem
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Problem created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Admin access required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Create new problem
+      tags:
+      - admin
+  /admin/problems/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing problem in the platform
+      parameters:
+      - description: Problem ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Problem details
+        in: body
+        name: problem
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Problem updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Admin access required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Problem not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Update existing problem
+      tags:
+      - admin
+  /admin/users:
+    get:
+      consumes:
+      - text/html
+      description: Displays a list of all registered users for admin management
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Users list
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Admin access required
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: List all users
+      tags:
+      - admin
+  /days:
+    get:
+      consumes:
+      - text/html
+      description: Displays a list of all available days with their problems
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Days list page
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: List available days
+      tags:
+      - problems
+  /days/{day}:
+    get:
+      consumes:
+      - text/html
+      description: Displays details of a specific day and its problems
+      parameters:
+      - description: Day number
+        in: path
+        name: day
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Day detail page
+        "400":
+          description: Invalid day parameter
+        "401":
+          description: Unauthorized
+        "404":
+          description: Day not found
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: Show day detail page
+      tags:
+      - problems
+  /leaderboard:
+    get:
+      consumes:
+      - text/html
+      description: Displays a leaderboard with top users and their scores
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Leaderboard page
+        "500":
+          description: Internal server error
+      summary: Show leaderboard page
+      tags:
+      - public
+  /login:
+    get:
+      consumes:
+      - text/html
+      description: Renders the login page for user authentication
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Login page
+      summary: Show the login page
+      tags:
+      - auth
+    post:
+      consumes:
+      - multipart/form-data
+      description: Validates OTP, creates/updates user, and issues JWT token on successful
+        login
+      parameters:
+      - description: Phone number
+        in: formData
+        name: phone
+        required: true
+        type: string
+      - description: OTP code
+        in: formData
+        name: otp
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "302":
+          description: Redirect to days page
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+      summary: Process login form submission
+      tags:
+      - auth
+  /problems/{slug}:
+    get:
+      consumes:
+      - text/html
+      description: Displays details of a specific problem including description and
+        examples
+      parameters:
+      - description: Problem slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Problem detail page
+        "401":
+          description: Unauthorized
+        "404":
+          description: Problem not found
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: Show problem detail page
+      tags:
+      - problems
+  /profile:
+    get:
+      consumes:
+      - text/html
+      description: Displays user profile with submission history and statistics
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Profile page
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: Show user profile
+      tags:
+      - user
+    post:
+      consumes:
+      - multipart/form-data
+      description: Update user profile information like username
+      parameters:
+      - description: User's username
+        in: formData
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Update user profile
+      tags:
+      - user
+  /submit/{slug}:
+    get:
+      consumes:
+      - text/html
+      description: Renders the submission form for a specific problem
+      parameters:
+      - description: Problem slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Submission form page
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - JWTCookie: []
+      summary: Display submission form
+      tags:
+      - submission
+    post:
+      consumes:
+      - multipart/form-data
+      description: Processes a final submission, runs all tests and saves result
+      parameters:
+      - description: Problem slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Submitted code
+        in: formData
+        name: code
+        required: true
+        type: string
+      - description: Programming language used
+        in: formData
+        name: language
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Submission results
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Process final submission
+      tags:
+      - submission
+  /terminal/{id}:
+    get:
+      consumes:
+      - text/html
+      description: Renders the terminal interface for an active terminal session
+      parameters:
+      - description: Terminal session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Terminal page
+        "401":
+          description: Unauthorized
+      security:
+      - JWTCookie: []
+      summary: Display terminal interface
+      tags:
+      - terminal
+  /terminal/{slug}:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a new WBFY terminal session for a problem
+      parameters:
+      - description: Problem slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 'Programming language (default: bash)'
+        in: formData
+        name: language
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Terminal session created
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service unavailable - no ports available
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Create a new terminal session
+      tags:
+      - terminal
+  /test/{slug}:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Tests the submitted code against non-hidden test cases
+      parameters:
+      - description: Problem slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Submitted code
+        in: formData
+        name: code
+        required: true
+        type: string
+      - description: Programming language used
+        in: formData
+        name: language
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Test results
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - JWTCookie: []
+      summary: Test code submission
+      tags:
+      - submission
+  /verify:
+    get:
+      consumes:
+      - text/html
+      description: Renders the OTP verification page with phone number and OTP if
+        provided
+      parameters:
+      - description: Phone number
+        in: query
+        name: phone
+        type: string
+      - description: OTP code
+        in: query
+        name: otp
+        type: string
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Verification page
+      summary: Show OTP verification page
+      tags:
+      - auth
+securityDefinitions:
+  JWT:
+    description: Bearer JWT token for authentication
+    in: header
+    name: Authorization
+    type: apiKey
+  JWTCookie:
+    description: JWT token stored in cookie for authentication
+    in: cookie
+    name: academy_session
+    type: apiKey
+swagger: "2.0"

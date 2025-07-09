@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/middleware"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/middleware"
 )
 
 // RegisterRoutes sets up all the routes for the application

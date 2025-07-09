@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/models"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/models"
 )
 
 // SubmissionHandlers contains handlers for submission routes
@@ -24,7 +24,18 @@ func NewSubmissionHandlers(db *database.DB, cfg *config.Config) *SubmissionHandl
 	return &SubmissionHandlers{db: db, cfg: cfg}
 }
 
-// SubmitPage handles the submission page
+// SubmitPage godoc
+// @Summary      Display submission form
+// @Description  Renders the submission form for a specific problem
+// @Tags         submission
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Param        slug    path      string  true  "Problem slug"
+// @Success      200  {object}  nil  "Submission form page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /submit/{slug} [get]
 func (h *SubmissionHandlers) SubmitPage(c *gin.Context) {
 	slug := c.Param("slug")
 
@@ -58,7 +69,21 @@ func (h *SubmissionHandlers) SubmitPage(c *gin.Context) {
 	})
 }
 
-// TestSubmission handles testing a submission
+// TestSubmission godoc
+// @Summary      Test code submission
+// @Description  Tests the submitted code against non-hidden test cases
+// @Tags         submission
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     JWTCookie
+// @Param        slug        path      string  true  "Problem slug"
+// @Param        code        formData  string  true  "Submitted code"
+// @Param        language    formData  string  true  "Programming language used"
+// @Success      200  {object}  map[string]interface{}  "Test results"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Router       /test/{slug} [post]
 func (h *SubmissionHandlers) TestSubmission(c *gin.Context) {
 	slug := c.Param("slug")
 	code := c.PostForm("code")
@@ -109,7 +134,21 @@ func (h *SubmissionHandlers) TestSubmission(c *gin.Context) {
 	})
 }
 
-// ProcessSubmission handles processing a final submission
+// ProcessSubmission godoc
+// @Summary      Process final submission
+// @Description  Processes a final submission, runs all tests and saves result
+// @Tags         submission
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     JWTCookie
+// @Param        slug        path      string  true  "Problem slug"
+// @Param        code        formData  string  true  "Submitted code"
+// @Param        language    formData  string  true  "Programming language used"
+// @Success      200  {object}  map[string]interface{}  "Submission results"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Router       /submit/{slug} [post]
 func (h *SubmissionHandlers) ProcessSubmission(c *gin.Context) {
 	slug := c.Param("slug")
 	code := c.PostForm("code")

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/auth"
+	"github.com/globallstudent/academy/internal/auth"
 )
 
 // Logger returns a middleware that logs requests

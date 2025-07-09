@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/yourusername/academy/internal/config"
+	"github.com/globallstudent/academy/internal/config"
 )
 
 // Redis represents a Redis connection

@@ -6,13 +6,41 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/globallstudent/academy/docs"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/handlers"
+	"github.com/globallstudent/academy/internal/middleware"
+	// "github.com/globallstudent/academy/internal/telegrambot"
 	"github.com/joho/godotenv"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/handlers"
-	"github.com/yourusername/academy/internal/middleware"
-	"github.com/yourusername/academy/internal/telegrambot"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+// @title           Summer Academy API
+// @version         1.0
+// @description     API Server for Summer Academy educational platform
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.example.com/support
+// @contact.email  support@example.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /
+
+// @securityDefinitions.apikey  JWT
+// @in                          header
+// @name                        Authorization
+// @description                 Bearer JWT token for authentication
+
+// @securityDefinitions.apikey  JWTCookie
+// @in                          cookie
+// @name                        academy_session
+// @description                 JWT token stored in cookie for authentication
 
 func main() {
 	// Load environment variables
@@ -63,28 +91,26 @@ func main() {
 	// Register routes
 	handlers.RegisterRoutes(router, db, redis, cfg)
 
+	// Swagger documentation
+	docs.SwaggerInfo.BasePath = "/"
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Define port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Initialize Telegram bot
-	serverURL := "http://localhost:" + port
-	if os.Getenv("SERVER_URL") != "" {
-		serverURL = os.Getenv("SERVER_URL")
-	}
+	// Initialize Telegram bot (commented out for now)
+	// serverURL := "http://localhost:" + port
+	// if os.Getenv("SERVER_URL") != "" {
+	//     serverURL = os.Getenv("SERVER_URL")
+	// }
 
 	// Only start the bot if token is provided
+	// Temporarily commented out due to telegrambot import issues
 	if cfg.Telegram.BotToken != "" {
-		bot, err := telegrambot.New(cfg, redis, db, serverURL)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize Telegram bot: %v", err)
-		} else {
-			// Start the bot in a goroutine
-			go bot.Start()
-			log.Println("Telegram bot started successfully")
-		}
+		log.Println("Telegram bot support is temporarily disabled")
 	} else {
 		log.Println("No Telegram bot token provided, skipping bot initialization")
 	}

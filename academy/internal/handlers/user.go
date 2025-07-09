@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/yourusername/academy/internal/config"
-	"github.com/yourusername/academy/internal/database"
-	"github.com/yourusername/academy/internal/models"
+	"github.com/globallstudent/academy/internal/config"
+	"github.com/globallstudent/academy/internal/database"
+	"github.com/globallstudent/academy/internal/models"
 )
 
 // UserHandlers contains handlers for user routes
@@ -21,6 +21,17 @@ func NewUserHandlers(db *database.DB, cfg *config.Config) *UserHandlers {
 	return &UserHandlers{db: db, cfg: cfg}
 }
 
+// ProfilePage godoc
+// @Summary      Show user profile
+// @Description  Displays user profile with submission history and statistics
+// @Tags         user
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Profile page"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /profile [get]
 // ProfilePage handles the user profile page
 func (h *UserHandlers) ProfilePage(c *gin.Context) {
 	userID, exists := c.Get("userID")
@@ -56,9 +67,21 @@ func (h *UserHandlers) ProfilePage(c *gin.Context) {
 	})
 }
 
-// UpdateProfile handles updating user profile
+// UpdateProfile godoc
+// @Summary      Update user profile
+// @Description  Update user profile information like username
+// @Tags         user
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     JWTCookie
+// @Param        username   formData  string  true  "User's username"
+// @Success      200  {object}  map[string]interface{}  "Profile updated successfully"
+// @Failure      400  {object}  map[string]interface{}  "Bad request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Internal server error"
+// @Router       /profile [post]
 func (h *UserHandlers) UpdateProfile(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	_, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"status":  "error",
@@ -83,6 +106,17 @@ func (h *UserHandlers) UpdateProfile(c *gin.Context) {
 	})
 }
 
+// AdminDashboard godoc
+// @Summary      Admin dashboard
+// @Description  Displays admin dashboard with platform statistics
+// @Tags         admin
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Admin dashboard"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      403  {object}  nil  "Forbidden - Admin access required"
+// @Router       /admin/ [get]
 // AdminDashboard handles the admin dashboard page
 func (h *UserHandlers) AdminDashboard(c *gin.Context) {
 	// Get stats
@@ -94,6 +128,18 @@ func (h *UserHandlers) AdminDashboard(c *gin.Context) {
 	})
 }
 
+// UserList godoc
+// @Summary      List all users
+// @Description  Displays a list of all registered users for admin management
+// @Tags         admin
+// @Accept       html
+// @Produce      html
+// @Security     JWTCookie
+// @Success      200  {object}  nil  "Users list"
+// @Failure      401  {object}  nil  "Unauthorized"
+// @Failure      403  {object}  nil  "Forbidden - Admin access required"
+// @Failure      500  {object}  nil  "Internal server error"
+// @Router       /admin/users [get]
 // UserList handles the admin user listing page
 func (h *UserHandlers) UserList(c *gin.Context) {
 	// Get all users
