@@ -3,9 +3,10 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/globallstudent/academy/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // DB represents a database connection pool
@@ -20,13 +21,15 @@ func Connect(cfg config.DatabaseConfig) (*DB, error) {
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.SSLMode,
 	)
 
-	pool, err := pgxpool.New(context.Background(), connString)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	pool, err := pgxpool.New(ctx, connString)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	// Test the connection
-	if err := pool.Ping(context.Background()); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("unable to ping database: %w", err)
 	}
 
