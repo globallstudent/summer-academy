@@ -2,23 +2,180 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WBFY Terminal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
-  <style>body { margin: 0; height: 100vh; background: black; }</style>
+  <style>
+    body { 
+      margin: 0; 
+      height: 100vh; 
+      background: black; 
+      display: flex;
+      flex-direction: column;
+    }
+    #terminal-container {
+      flex-grow: 1;
+      position: relative;
+    }
+    #terminal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+    .status {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: #fff;
+      background: rgba(0,0,0,0.5);
+      border-radius: 3px;
+    }
+  </style>
 </head>
 <body>
-  <div id="terminal"></div>
+  <div id="terminal-container">
+    <div id="terminal"></div>
+  </div>
+  <div id="status" class="status" style="display:none;"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
   <script>
-    const term = new Terminal();
-    term.open(document.getElementById('terminal'));
+    // Terminal configuration
+    const term = new Terminal({
+      cursorBlink: true,
+      fontFamily: 'monospace',
+      fontSize: 14,
+      scrollback: 1000,
+      convertEol: true,
+      // Set cursor style to ensure visibility
+      cursorStyle: 'block',
+      // Ensure good rendering performance
+      rendererType: 'canvas',
+      // Disable scroll bars since we use fit addon
+      disableStdin: false,
+      allowProposedApi: true
+    });
 
-    const socket = new WebSocket("ws://" + location.host + "/ws");
+    // Load fit addon to resize terminal to container
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    
+    // Open terminal in the container
+    const termElement = document.getElementById('terminal');
+    term.open(termElement);
+    
+    // Focus management - critical for input to work
+    // Focus terminal on click anywhere in the terminal area
+    termElement.addEventListener('click', () => {
+      term.focus();
+      console.log('Terminal focused via click');
+    });
+    
+    // Auto-focus terminal when page loads
+    window.addEventListener('load', () => {
+      setTimeout(() => term.focus(), 100);
+    });
+    
+    // Keep terminal focused when window regains focus
+    window.addEventListener('focus', () => {
+      setTimeout(() => term.focus(), 100);
+    });
+    
+    // Show status messages
+    function showStatus(message, isError = false) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = message;
+      statusEl.style.display = 'block';
+      statusEl.style.backgroundColor = isError ? 'rgba(255,0,0,0.7)' : 'rgba(0,128,0,0.7)';
+      
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 3000);
+    }
 
-    socket.onmessage = e => term.write(e.data);
-    term.onData(data => socket.send(data));
+    // WebSocket setup and management
+    const connectWebSocket = () => {
+      const socket = new WebSocket("ws://" + location.host + "/ws");
+      
+      // Handle WebSocket open event
+      socket.onopen = () => {
+        console.log('WebSocket connection established');
+        showStatus('Connected');
+        
+        // Focus and resize terminal when connection established
+        fitAddon.fit();
+        term.focus();
+        
+        // Send initial terminal size
+        sendSize(socket);
+      };
+
+      // Handle WebSocket messages (terminal output)
+      socket.onmessage = e => {
+        term.write(e.data);
+      };
+      
+      // Handle WebSocket close event
+      socket.onclose = () => {
+        console.log('WebSocket connection closed');
+        term.write('\r\n\x1b[31mConnection closed\x1b[0m\r\n');
+        showStatus('Disconnected', true);
+        
+        // Try to reconnect after a delay
+        setTimeout(() => {
+          connectWebSocket();
+        }, 2000);
+      };
+      
+      // Handle WebSocket errors
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        showStatus('Connection error', true);
+      };
+
+      // Send user input to server via WebSocket
+      term.onData(data => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(data);
+          console.log('Sent input:', data.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'));
+        }
+      });
+      
+      return socket;
+    };
+    
+    // Start the WebSocket connection
+    const socket = connectWebSocket();
+
+    // Send terminal dimensions to server
+    function sendSize(ws = socket) {
+      const cols = term.cols;
+      const rows = term.rows;
+      
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(`RESIZE:${cols},${rows}`);
+        console.log(`Terminal resized to ${cols}x${rows}`);
+      }
+    }
+
+    // Handle window resize events
+    window.addEventListener('resize', () => {
+      if (fitAddon) {
+        fitAddon.fit();
+        sendSize();
+      }
+    });
+
+    // Initial fit and focus
+    setTimeout(() => {
+      fitAddon.fit();
+      term.focus();
+    }, 100);
   </script>
 </body>
 </html>
-
