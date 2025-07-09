@@ -19,7 +19,7 @@
                         </div>
                         {{ end }}
 
-                        <form action="/login" method="post">
+                        <form action="/auth/login" method="post">
                             <div class="mb-3">
                                 <label for="otp" class="form-label">Verification Code</label>
                                 <input type="text" class="form-control" id="otp" name="otp" 
@@ -40,7 +40,7 @@
                         
                         <div class="mt-4 text-center">
                             <p>
-                                <a href="/login" class="text-decoration-none">
+                                <a href="/auth/login" class="text-decoration-none">
                                     <i class="bi bi-arrow-left"></i> Back to Login
                                 </a>
                             </p>

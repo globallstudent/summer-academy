@@ -82,6 +82,8 @@ func main() {
 
 	// Initialize router
 	router := gin.Default()
+	// Do not trust all proxies by default
+	router.SetTrustedProxies(nil)
 
 	// Configure CORS
 	corsConfig := cors.DefaultConfig()
