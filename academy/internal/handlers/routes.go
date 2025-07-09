@@ -22,12 +22,13 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	router.GET("/login", publicHandlers.LoginPage)
 	router.GET("/verify", publicHandlers.VerifyOTPPage)
 	router.POST("/login", publicHandlers.ProcessLogin)
-	router.GET("/leaderboard", publicHandlers.LeaderboardPage)
+	router.GET("/logout", publicHandlers.LogoutHandler)
 
 	// Auth required routes
 	authenticated := router.Group("/")
 	authenticated.Use(middleware.Auth())
 	{
+		authenticated.GET("/leaderboard", publicHandlers.LeaderboardPage)
 		// Contest routes
 		authenticated.GET("/contests", contestHandlers.ListContests)
 		authenticated.GET("/contests/:slug", contestHandlers.ContestDetail)

@@ -1,0 +1,117 @@
+{{ define "content" }}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Profile</h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px;">
+                            <span class="text-white fs-1">{{ index .User.Username 0 }}</span>
+                        </div>
+                        <h4>{{ .User.Username }}</h4>
+                        <p class="text-muted">{{ .User.Role }}</p>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Registered</span>
+                            <span>{{ .User.RegisteredAt.Format "Jan 02, 2006" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Phone</span>
+                            <span>{{ .User.PhoneNumber }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Recent Submissions</h3>
+                </div>
+                <div class="card-body">
+                    {{ if .Submissions }}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Problem</th>
+                                    <th>Language</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{ range .Submissions }}
+                                <tr>
+                                    <td>{{ .SubmittedAt.Format "Jan 02, 15:04" }}</td>
+                                    <td>{{ .ProblemID }}</td>
+                                    <td>{{ .Language }}</td>
+                                    <td>
+                                        {{ if eq .Status "passed" }}
+                                        <span class="badge bg-success">Passed</span>
+                                        {{ else if eq .Status "failed" }}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {{ else if eq .Status "pending" }}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {{ else }}
+                                        <span class="badge bg-secondary">{{ .Status }}</span>
+                                        {{ end }}
+                                    </td>
+                                    <td>{{ .Score }}</td>
+                                </tr>
+                                {{ end }}
+                            </tbody>
+                        </table>
+                    </div>
+                    {{ else }}
+                    <div class="alert alert-info">
+                        You have not made any submissions yet. Start solving problems to track your progress!
+                    </div>
+                    {{ end }}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">Your Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h2 class="card-title">0</h2>
+                                    <p class="card-text">Problems Solved</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h2 class="card-title">0</h2>
+                                    <p class="card-text">Contests Joined</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h2 class="card-title">0</h2>
+                                    <p class="card-text">Total Score</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

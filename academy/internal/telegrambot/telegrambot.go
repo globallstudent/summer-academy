@@ -108,18 +108,48 @@ func (b *Bot) handleStart(c telebot.Context) error {
 func (b *Bot) handleLogin(c telebot.Context) error {
 	userID := c.Sender().ID
 
-	// Reset user state if it exists
-	userStates[userID] = &PhoneState{}
+	// Check if we already have this user's phone number
+	state, exists := userStates[userID]
+	
+	// If user hasn't shared their phone number yet
+	if !exists || state == nil || state.PhoneNumber == "" {
+		// Create a custom keyboard for phone number sharing
+		kb := &telebot.ReplyMarkup{ResizeKeyboard: true}
+		shareBtn := kb.Contact("📱 Share Phone Number")
+		kb.Reply(kb.Row(shareBtn))
 
-	// Create a custom keyboard for phone number sharing
-	kb := &telebot.ReplyMarkup{ResizeKeyboard: true}
-	shareBtn := kb.Contact("📱 Share Phone Number")
-	kb.Reply(kb.Row(shareBtn))
+		return c.Send(
+			"Please share your phone number to authenticate.\n\n"+
+				"You'll only need to do this once.",
+			kb,
+		)
+	}
+	
+	// User already has shared their phone number before, generate a new OTP
+	// Generate OTP
+	otp := generateOTP()
+	state.OTP = otp
+	
+	// Store OTP in Redis with expiration (5 minutes) if Redis is available
+	if b.redis != nil {
+		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
+		if err != nil {
+			// Log the error in production
+			log.Printf("Error storing OTP in Redis: %v", err)
+			return c.Send("An error occurred while storing OTP. Please try again later.")
+		}
+	} else {
+		// In development mode without Redis, just log the OTP
+		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
+	}
 
+	// Send OTP directly
 	return c.Send(
-		"Please share your phone number to authenticate.\n\n"+
-			"Your number will be securely stored and used only for authentication.",
-		kb,
+		fmt.Sprintf("Your login code is: *%s*\n\n", otp)+
+			"Enter this code on the login page to access Summer Academy.",
+		&telebot.SendOptions{
+			ParseMode: telebot.ModeMarkdown,
+		},
 	)
 }
 
@@ -153,16 +183,51 @@ func (b *Bot) handleContact(c telebot.Context) error {
 
 	// Remove custom keyboard
 	kb := &telebot.ReplyMarkup{RemoveKeyboard: true}
+	c.Send("Thank you!", kb)
 
-	// Ask for full name
+	// Generate OTP immediately
+	otp := generateOTP()
+	state.OTP = otp
+	
+	// Store the username if available, otherwise use a default name
+	username := c.Sender().Username
+	if username == "" {
+		username = "User"
+	}
+	state.FullName = username
+	
+	// Store OTP in Redis with expiration (5 minutes) if Redis is available
+	if b.redis != nil {
+		err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
+		if err != nil {
+			// Log the error in production
+			log.Printf("Error storing OTP in Redis: %v", err)
+			return c.Send("An error occurred while storing OTP. Please try again later.")
+		}
+	} else {
+		// In development mode without Redis, just log the OTP
+		log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
+	}
+
+	// Send OTP directly
 	return c.Send(
-		"Great! Now, please enter your full name:",
-		kb,
+		fmt.Sprintf("Your login code is: *%s*\n\n", otp)+
+			"Enter this code on the login page to access Summer Academy.",
+		&telebot.SendOptions{
+			ParseMode: telebot.ModeMarkdown,
+		},
 	)
 }
 
-// handleText handles text messages (for name input)
+// handleText handles text messages
 func (b *Bot) handleText(c telebot.Context) error {
+	text := c.Text()
+	
+	// If the text is /login, handle it as the login command
+	if text == "/login" {
+		return b.handleLogin(c)
+	}
+	
 	userID := c.Sender().ID
 	state := userStates[userID]
 
@@ -171,52 +236,8 @@ func (b *Bot) handleText(c telebot.Context) error {
 		return c.Send("Please use /login to start the authentication process.")
 	}
 
-	// If name is not set yet, this is the name input
-	if state.FullName == "" {
-		fullName := c.Text()
-		if len(fullName) < 3 {
-			return c.Send("Please enter your real full name (at least 3 characters).")
-		}
-
-		// Save full name
-		state.FullName = fullName
-
-		// Generate OTP
-		otp := generateOTP()
-		state.OTP = otp
-
-		// Store OTP in Redis with expiration (5 minutes) if Redis is available
-		if b.redis != nil {
-			err := b.redis.StoreOTP(state.PhoneNumber, otp, 5*time.Minute)
-			if err != nil {
-				// Log the error in production
-				log.Printf("Error storing OTP in Redis: %v", err)
-				return c.Send("An error occurred while storing OTP. Please try again later.")
-			}
-		} else {
-			// In development mode without Redis, just log the OTP
-			log.Printf("Development mode: OTP for %s is %s", state.PhoneNumber, otp)
-		}
-
-		// Create login URL with parameters
-		loginURL := fmt.Sprintf("%s?phone=%s&otp=%s", b.loginURL, state.PhoneNumber, otp)
-
-		// Send OTP and login link
-		return c.Send(
-			fmt.Sprintf("Your verification code is: *%s*\n\n", otp)+
-				"You can use this code on the website, or simply click the link below:\n\n"+
-				fmt.Sprintf("[Click here to login](%s)", loginURL),
-			&telebot.SendOptions{
-				ParseMode: telebot.ModeMarkdown,
-			},
-		)
-	}
-
-	// If we reach here, user has already received their OTP but sent another message
-	return c.Send(
-		"You already have an active login request.\n" +
-			"Please use the login link I sent you, or use /login to start again.",
-	)
+	// If user already has an active session, provide help
+	return c.Send("Need a new login code? Use /login to get one.\n\nIf you're having issues, try /start to restart the bot.")
 }
 
 // generateOTP generates a 6-digit random OTP

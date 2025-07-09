@@ -35,19 +35,30 @@ func NewProblemHandlers(db *database.DB, cfg *config.Config) *ProblemHandlers {
 // @Failure      500  {object}  nil  "Internal server error"
 // @Router       /days [get]
 func (h *ProblemHandlers) ListDays(c *gin.Context) {
+	// Get user from context (set by auth middleware)
+	user, exists := c.Get("user")
+	if !exists {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
+
 	// Get all available days (in production, filter by unlock time)
 	days, err := getAvailableDays(h.db)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "main", gin.H{
-			"Title": "Available Days - Summer Academy",
-			"Error": "Failed to get available days",
+			"Title":           "Available Days - Summer Academy",
+			"Error":           "Failed to get available days",
+			"User":            user,
+			"IsAuthenticated": true,
 		})
 		return
 	}
 
 	c.HTML(http.StatusOK, "main", gin.H{
-		"Title": "Available Days - Summer Academy",
-		"Days":  days,
+		"Title":           "Available Days - Summer Academy",
+		"Days":            days,
+		"User":            user,
+		"IsAuthenticated": true,
 	})
 }
 

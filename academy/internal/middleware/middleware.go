@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/globallstudent/academy/internal/auth"
+	"github.com/globallstudent/academy/internal/models"
+	"github.com/google/uuid"
 )
 
 // Logger returns a middleware that logs requests
@@ -54,10 +55,19 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 
-		// Set user ID in context for subsequent handlers
-		c.Set("userID", claims.UserID)
+		// Create a user object and set in context for subsequent handlers
+		user := models.User{
+			ID:       claims.UserID,
+			Username: claims.Username,
+			Role:     claims.Role,
+		}
+		
+		// Set both individual fields and the complete user object
+		c.Set("userID", claims.UserID.String())
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
+		c.Set("user", user)
+		c.Set("IsAuthenticated", true)
 
 		c.Next()
 	}

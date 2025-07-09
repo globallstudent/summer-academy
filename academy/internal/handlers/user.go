@@ -42,28 +42,73 @@ func (h *UserHandlers) ProfilePage(c *gin.Context) {
 		return
 	}
 
+	// Get user details - userID could be a string or uuid.UUID
+	var userUUID uuid.UUID
+	if userIDString, ok := userID.(string); ok {
+		// Parse string into UUID
+		parsedUUID, err := uuid.Parse(userIDString)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "main", gin.H{
+				"Title": "Profile - Summer Academy",
+				"Error": "Invalid user ID format",
+				"IsAuthenticated": true,
+			})
+			return
+		}
+		userUUID = parsedUUID
+	} else if userIDUUID, ok := userID.(uuid.UUID); ok {
+		userUUID = userIDUUID
+	} else {
+		// Use the user from context directly if available
+		if userObj, exists := c.Get("user"); exists {
+			if userModel, ok := userObj.(models.User); ok {
+				// Render with the user from context
+				c.HTML(http.StatusOK, "main", gin.H{
+					"Title":           "Profile - Summer Academy",
+					"User":            userModel,
+					"Submissions":     []models.Submission{},
+					"IsAuthenticated": true,
+				})
+				return
+			}
+		}
+		
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Profile - Summer Academy",
+			"Error": "User ID not found or has invalid type",
+			"IsAuthenticated": true,
+		})
+		return
+	}
+	
 	// Get user details
-	user, err := getUserByID(h.db, userID.(uuid.UUID))
+	user, err := getUserByID(h.db, userUUID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/error.html", gin.H{
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Error - Summer Academy",
 			"Error": "Failed to get user details",
+			"IsAuthenticated": true,
 		})
 		return
 	}
 
 	// Get user submissions
-	submissions, err := getUserSubmissions(h.db, userID.(uuid.UUID))
+	submissions, err := getUserSubmissions(h.db, userUUID)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "pages/profile.html", gin.H{
-			"Error": "Failed to get user submissions",
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title":           "Profile - Summer Academy",
+			"Error":           "Failed to get user submissions",
+			"User":            user,
+			"IsAuthenticated": true,
 		})
 		return
 	}
 
-	c.HTML(http.StatusOK, "pages/profile.html", gin.H{
-		"Title":       "Profile - Summer Academy",
-		"User":        user,
-		"Submissions": submissions,
+	c.HTML(http.StatusOK, "main", gin.H{
+		"Title":           "Profile - Summer Academy",
+		"User":            user,
+		"Submissions":     submissions,
+		"IsAuthenticated": true,
 	})
 }
 
