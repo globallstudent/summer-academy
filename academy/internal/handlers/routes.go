@@ -15,6 +15,7 @@ func RegisterRoutes(router *gin.Engine, db *database.DB, redis *database.Redis, 
 	submissionHandlers := NewSubmissionHandlers(db, cfg)
 	userHandlers := NewUserHandlers(db, cfg)
 	wbfyHandlers := NewWBFYHandlers(db, cfg)
+	wbfyHandlers.StartCleanupJob()
 	contestHandlers := NewContestHandlers(db, redis, cfg)
 
 	// Public routes (no auth required)

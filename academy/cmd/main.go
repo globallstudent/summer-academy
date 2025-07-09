@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/globallstudent/academy/docs"
+	"github.com/globallstudent/academy/internal/auth"
 	"github.com/globallstudent/academy/internal/config"
 	"github.com/globallstudent/academy/internal/database"
 	"github.com/globallstudent/academy/internal/handlers"
@@ -51,6 +52,10 @@ func main() {
 
 	// Initialize configuration
 	cfg := config.New()
+
+	// Configure authentication parameters
+	auth.SetJWTSecret(cfg.Auth.JWTSecret)
+	middleware.SetCookieName(cfg.Auth.CookieName)
 
 	// Setup database connection
 	db, err := database.Connect(cfg.Database)

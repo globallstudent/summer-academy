@@ -127,10 +127,16 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	// Verify OTP against Redis if available
 	if h.redis != nil && h.redis.Client != nil {
 		isValid, _ = h.redis.VerifyOTP(phoneNumber, otp)
-	} else {
-		// For development, if Redis is not available, accept any 6-digit code
+	} else if h.cfg.Environment != "production" {
+		// For development when Redis isn't available, accept any code
 		isValid = true
 		log.Printf("Development mode: accepting any OTP code: %s", otp)
+	} else {
+		c.HTML(http.StatusInternalServerError, "main", gin.H{
+			"Title": "Verify OTP - Summer Academy",
+			"Error": "OTP service unavailable",
+		})
+		return
 	}
 
 	if !isValid {
@@ -178,13 +184,14 @@ func (h *PublicHandlers) ProcessLogin(c *gin.Context) {
 	}
 
 	// Set cookie
+	secure := c.Request.TLS != nil
 	c.SetCookie(
 		h.cfg.Auth.CookieName,
 		token,
 		h.cfg.Auth.CookieMaxAge,
 		"/",
 		"",
-		false,
+		secure,
 		true,
 	)
 
@@ -239,13 +246,14 @@ func (h *PublicHandlers) LeaderboardPage(c *gin.Context) {
 // @Router       /logout [get]
 func (h *PublicHandlers) LogoutHandler(c *gin.Context) {
 	// Clear the cookie
+	secure := c.Request.TLS != nil
 	c.SetCookie(
 		h.cfg.Auth.CookieName,
 		"",
 		-1, // Expire immediately
 		"/",
 		"",
-		false,
+		secure,
 		true,
 	)
 
