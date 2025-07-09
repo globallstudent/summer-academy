@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  academy:
+    build: 
+      context: ./academy
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - ENV=production
+      - PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres_password
+      - DB_NAME=academy
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - JWT_SECRET=your_secure_jwt_secret_key_here
+      - COOKIE_NAME=academy_session
+      - SERVER_URL=http://academy:8080
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - WBFY_URL=http://localhost:8081
+    volumes:
+      - ./problems:/app/problems
+      - ./academy/.env:/app/.env
+    restart: unless-stopped
+    networks:
+      - academy-network
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres_password
+      - POSTGRES_DB=academy
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    restart: unless-stopped
+    networks:
+      - academy-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - academy-network
+
+  wbfy:
+    build:
+      context: ./wbfy
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - academy-network
+
+networks:
+  academy-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

@@ -1,0 +1,281 @@
+{{ define "pages/terminal.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <link href="/static/css/terminal.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.8.0/lib/xterm-addon-web-links.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Summer Academy</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/days">All Days</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/leaderboard">Leaderboard</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid my-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h1>Terminal</h1>
+                    <div>
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                            Back to Problem
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Session: {{ .SessionID }}</span>
+                            <span id="connection-status" class="badge bg-secondary">Connecting...</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="terminal-container" class="terminal-container"></div>
+                        {{if .Error}}
+                        <div class="alert alert-danger m-3">
+                            {{ .Error }}
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Summer Academy &copy; 2025</span>
+        </div>
+    </footer>
+
+    <!-- Load WBFY Terminal Integration -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sessionId = '{{ .SessionID }}';
+            const wsPath = '{{ if .WBFY.WSPath }}{{ .WBFY.WSPath }}{{ else }}{{ end }}';
+            const containerPort = {{ if .Port }}{{ .Port }}{{ else }}0{{ end }};
+            
+            {{ if .Error }}
+            // Don't initialize terminal if there's an error
+            document.getElementById('connection-status').textContent = 'Error';
+            document.getElementById('connection-status').className = 'badge bg-danger';
+            return;
+            {{ end }}
+            
+            // Initialize terminal
+            const term = new Terminal({
+                cursorBlink: true,
+                fontFamily: 'monospace',
+                fontSize: 14,
+                theme: {
+                    background: '#1e1e1e',
+                    foreground: '#f0f0f0'
+                },
+                scrollback: 5000,
+                convertEol: true
+            });
+            
+            const fitAddon = new FitAddon();
+            term.loadAddon(fitAddon);
+            
+            // Initialize web links addon
+            const webLinksAddon = new WebLinksAddon();
+            term.loadAddon(webLinksAddon);
+            
+            // Open terminal in container
+            const terminalContainer = document.getElementById('terminal-container');
+            term.open(terminalContainer);
+            fitAddon.fit();
+            
+            // Global socket reference
+            let socket;
+            let reconnectTimeout;
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 5;
+            
+            // Function to establish WebSocket connection
+            function connectWebSocket() {
+                // Set status to connecting
+                const connectionStatus = document.getElementById('connection-status');
+                connectionStatus.textContent = 'Connecting...';
+                connectionStatus.className = 'badge bg-secondary';
+                
+                // First get the WebSocket URL from the server
+                fetch(`/api/terminal/ws/${sessionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Use the WebSocket URL provided by the server
+                            establishWebSocketConnection(data.url);
+                        } else {
+                            // Handle error
+                            connectionStatus.textContent = 'Error';
+                            connectionStatus.className = 'badge bg-danger';
+                            term.write(`\r\n\x1b[31mError: ${data.message}\x1b[0m\r\n`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching WebSocket URL:', error);
+                        connectionStatus.textContent = 'Error';
+                        connectionStatus.className = 'badge bg-danger';
+                        term.write('\r\n\x1b[31mFailed to connect to terminal server.\x1b[0m\r\n');
+                        
+                        // Try to reconnect after a delay
+                        setTimeout(connectWebSocket, 5000);
+                    });
+            }
+            
+            // Establish WebSocket connection
+            function establishWebSocketConnection(url) {
+                const connectionStatus = document.getElementById('connection-status');
+                
+                // Clear any existing reconnect timeouts
+                if (reconnectTimeout) {
+                    clearTimeout(reconnectTimeout);
+                }
+                
+                try {
+                    socket = new WebSocket(url);
+                    
+                    socket.onopen = () => {
+                        reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+                        connectionStatus.textContent = 'Connected';
+                        connectionStatus.className = 'badge bg-success';
+                        term.write('\r\n\x1b[32mConnected to terminal.\x1b[0m\r\n');
+                        
+                        // Send initial terminal size
+                        const dimensions = { 
+                            type: 'resize',
+                            cols: term.cols, 
+                            rows: term.rows 
+                        };
+                        
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify(dimensions));
+                        }
+                    };
+                    
+                    socket.onmessage = (event) => {
+                        try {
+                            // Try to parse as JSON first
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'resize') {
+                                console.log('Terminal resized to:', data.cols, data.rows);
+                            } else if (data.type === 'error') {
+                                term.write(`\r\n\x1b[31mError: ${data.message}\x1b[0m\r\n`);
+                            }
+                        } catch (e) {
+                            // Not JSON, treat as raw terminal output
+                            term.write(event.data);
+                        }
+                    };
+                    
+                    socket.onclose = (event) => {
+                        connectionStatus.textContent = 'Disconnected';
+                        connectionStatus.className = 'badge bg-warning';
+                        term.write('\r\n\x1b[33mConnection closed.\x1b[0m\r\n');
+                        
+                        // Try to reconnect if this wasn't a normal closure
+                        if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                            reconnectAttempts++;
+                            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff
+                            term.write(`\r\n\x1b[33mAttempting to reconnect in ${delay/1000} seconds...\x1b[0m\r\n`);
+                            
+                            reconnectTimeout = setTimeout(() => {
+                                connectWebSocket();
+                            }, delay);
+                        } else if (reconnectAttempts >= maxReconnectAttempts) {
+                            term.write('\r\n\x1b[31mFailed to reconnect after multiple attempts. Please refresh the page.\x1b[0m\r\n');
+                            connectionStatus.textContent = 'Failed';
+                            connectionStatus.className = 'badge bg-danger';
+                        }
+                    };
+                    
+                    socket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        connectionStatus.textContent = 'Error';
+                        connectionStatus.className = 'badge bg-danger';
+                    };
+                
+                    // Send terminal input to server
+                    term.onData(data => {
+                        if (socket.readyState === WebSocket.OPEN) {
+                            socket.send(data);
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Error establishing WebSocket connection:', error);
+                    connectionStatus.textContent = 'Error';
+                    connectionStatus.className = 'badge bg-danger';
+                    term.write('\r\n\x1b[31mFailed to connect to terminal server.\x1b[0m\r\n');
+                }
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                fitAddon.fit();
+                sendTerminalResize();
+            });
+            
+            // Send terminal resize event
+            function sendTerminalResize() {
+                const dimensions = { 
+                    type: 'resize',
+                    cols: term.cols, 
+                    rows: term.rows 
+                };
+                
+                // Send via WebSocket if connected
+                if (typeof socket !== 'undefined' && socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify(dimensions));
+                }
+            }
+            
+            // Start the connection process
+            connectWebSocket();
+            
+            // Focus terminal
+            setTimeout(() => {
+                term.focus();
+                fitAddon.fit();
+            }, 500);
+            
+            // Cleanup when leaving the page
+            window.addEventListener('beforeunload', () => {
+                // Optionally send a request to the server to cleanup resources
+                fetch(`/api/terminal/cleanup/${sessionId}`, { method: 'POST' })
+                    .catch(err => console.error('Error cleaning up terminal session:', err));
+            });
+        });
+    </script>
+{{ end }}

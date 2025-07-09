@@ -1,0 +1,136 @@
+/* Main CSS for Summer Academy */
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.jumbotron {
+    border-radius: 0.5rem;
+    background-color: #e9ecef;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    font-weight: 600;
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+}
+
+.btn {
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+/* Problem page styles */
+.problem-container {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Markdown content styling */
+.markdown-content {
+    line-height: 1.8;
+}
+
+.markdown-content h1, .markdown-content h2 {
+    border-bottom: 1px solid #eaeaea;
+    padding-bottom: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.markdown-content pre {
+    background-color: #f6f8fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.markdown-content code {
+    background-color: #f6f8fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}
+
+/* Code editor styles */
+.code-editor-container {
+    position: sticky;
+    top: 2rem;
+    background-color: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 1rem;
+    height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+}
+
+.code-editor {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+/* Terminal page styles */
+.terminal-container {
+    background-color: #1e1e1e;
+    color: #f0f0f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    height: calc(100vh - 150px);
+    overflow: hidden;
+}
+
+/* Leaderboard styles */
+.leaderboard-table th {
+    background-color: #007bff;
+    color: white;
+}
+
+.leaderboard-table .top-3 {
+    background-color: #fff9db;
+    font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 1.5rem;
+    }
+    
+    .code-editor-container {
+        height: 400px;
+        margin-top: 1rem;
+        position: static;
+    }
+    
+    .terminal-container {
+        height: 400px;
+    }
+}

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Summer Academy</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/days">All Days</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/leaderboard">Leaderboard</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        <div class="jumbotron p-5 mb-4 bg-light rounded">
+            <h1 class="display-4">Welcome to Summer Academy</h1>
+            <p class="lead">
+                Learn Data Structures & Algorithms, Linux Command-Line, and Software Development skills through daily challenges.
+            </p>
+            <hr class="my-4">
+            <p>Complete challenges, earn points, and compete on the leaderboard!</p>
+            <a class="btn btn-primary btn-lg" href="/days" role="button">Start Learning</a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">DSA Challenges</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Solve algorithm challenges to improve your problem-solving skills.</p>
+                        <a href="/days" class="btn btn-outline-primary">View Challenges</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">Linux Skills</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Master the command line through interactive Linux challenges.</p>
+                        <a href="/days" class="btn btn-outline-success">View Challenges</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning">
+                        <h5 class="card-title mb-0">Build Projects</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Create real-world applications and build your portfolio.</p>
+                        <a href="/days" class="btn btn-outline-warning">View Projects</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{ if .TodayProblems }}
+        <section class="my-4">
+            <h2>Today's Challenges</h2>
+            <div class="row">
+                {{ range .TodayProblems }}
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">{{ .Title }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Day {{ .Day }} - {{ .Type }}</p>
+                            <p>Score: {{ .Score }} points</p>
+                            <a href="/problems/{{ .Slug }}" class="btn btn-primary">Start Challenge</a>
+                        </div>
+                    </div>
+                </div>
+                {{ end }}
+            </div>
+        </section>
+        {{ end }}
+    </main>
+
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">Summer Academy &copy; 2025</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
