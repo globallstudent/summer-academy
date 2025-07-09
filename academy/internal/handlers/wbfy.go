@@ -12,28 +12,30 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/globallstudent/academy/internal/config"
 	"github.com/globallstudent/academy/internal/database"
+	"github.com/google/uuid"
 )
 
 // WBFYHandlers contains handlers for WBFY terminal integration
 type WBFYHandlers struct {
-	db         *database.DB
-	cfg        *config.Config
-	portMutex  sync.Mutex
-	portMap    map[string]int
-	sessionMap map[string]*TerminalSession
+	db           *database.DB
+	cfg          *config.Config
+	portMutex    sync.Mutex
+	portMap      map[string]int
+	sessionMutex sync.RWMutex
+	sessionMap   map[string]*TerminalSession
 }
 
 // NewWBFYHandlers creates a new WBFYHandlers instance
 func NewWBFYHandlers(db *database.DB, cfg *config.Config) *WBFYHandlers {
 	return &WBFYHandlers{
-		db:         db,
-		cfg:        cfg,
-		portMutex:  sync.Mutex{},
-		portMap:    make(map[string]int),
-		sessionMap: make(map[string]*TerminalSession),
+		db:           db,
+		cfg:          cfg,
+		portMutex:    sync.Mutex{},
+		portMap:      make(map[string]int),
+		sessionMutex: sync.RWMutex{},
+		sessionMap:   make(map[string]*TerminalSession),
 	}
 }
 
@@ -225,7 +227,9 @@ func (h *WBFYHandlers) CreateTerminal(c *gin.Context) {
 		}
 
 		// Store in memory map
+		h.sessionMutex.Lock()
 		h.sessionMap[sessionID] = &session
+		h.sessionMutex.Unlock()
 
 		// Store session in database (could use Redis in production)
 		h.storeTerminalSession(session)
@@ -277,7 +281,9 @@ func (h *WBFYHandlers) TerminalPage(c *gin.Context) {
 	sessionID := c.Param("id")
 
 	// Get session from memory map
+	h.sessionMutex.RLock()
 	session, exists := h.sessionMap[sessionID]
+	h.sessionMutex.RUnlock()
 	if !exists {
 		// In a production environment, you might want to fetch from database
 		// and recreate the container if it doesn't exist
@@ -327,7 +333,9 @@ func (h *WBFYHandlers) WebSocketProxy(c *gin.Context) {
 	sessionID := c.Param("id")
 
 	// Get session from memory map
+	h.sessionMutex.RLock()
 	session, exists := h.sessionMap[sessionID]
+	h.sessionMutex.RUnlock()
 	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "error",
@@ -354,7 +362,9 @@ func (h *WBFYHandlers) CleanupTerminal(c *gin.Context) {
 	sessionID := c.Param("id")
 
 	// Get session
+	h.sessionMutex.RLock()
 	session, exists := h.sessionMap[sessionID]
+	h.sessionMutex.RUnlock()
 	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{
 			"status":  "error",
@@ -378,7 +388,9 @@ func (h *WBFYHandlers) CleanupTerminal(c *gin.Context) {
 	h.ReleasePort(sessionID)
 
 	// Remove from memory map
+	h.sessionMutex.Lock()
 	delete(h.sessionMap, sessionID)
+	h.sessionMutex.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
@@ -404,17 +416,19 @@ func (h *WBFYHandlers) cleanupExpiredSessions() {
 	var sessionsToRemove []string
 
 	// Check all sessions
-	h.portMutex.Lock()
+	h.sessionMutex.RLock()
 	for id, session := range h.sessionMap {
 		if now.After(session.ExpiresAt) {
 			sessionsToRemove = append(sessionsToRemove, id)
 		}
 	}
-	h.portMutex.Unlock()
+	h.sessionMutex.RUnlock()
 
 	// Remove expired sessions
 	for _, id := range sessionsToRemove {
+		h.sessionMutex.RLock()
 		session := h.sessionMap[id]
+		h.sessionMutex.RUnlock()
 
 		// Stop and remove the container
 		if session.ContainerName != "" {
@@ -431,7 +445,9 @@ func (h *WBFYHandlers) cleanupExpiredSessions() {
 		h.ReleasePort(id)
 
 		// Remove from memory map
+		h.sessionMutex.Lock()
 		delete(h.sessionMap, id)
+		h.sessionMutex.Unlock()
 
 		fmt.Printf("Cleaned up expired session: %s\n", id)
 	}

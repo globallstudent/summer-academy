@@ -10,6 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
+// cookieName is the name of the session cookie. It can be configured at runtime.
+var cookieName = "academy_session"
+
+// SetCookieName allows configuring the cookie name for authentication
+func SetCookieName(name string) {
+	if name != "" {
+		cookieName = name
+	}
+}
+
 // Logger returns a middleware that logs requests
 func Logger() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -39,7 +49,7 @@ func Logger() gin.HandlerFunc {
 // Auth returns a middleware that checks if the user is authenticated
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token, err := c.Cookie("academy_session")
+		token, err := c.Cookie(cookieName)
 		if err != nil {
 			c.AbortWithStatusJSON(401, gin.H{
 				"error": "Unauthorized",
